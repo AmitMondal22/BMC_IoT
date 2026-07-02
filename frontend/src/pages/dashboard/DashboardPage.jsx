@@ -58,14 +58,9 @@ export default function DashboardPage() {
   }
 
   const stats = [
-    { label: 'Total Devices', value: summary.totalDevices, icon: Monitor, accent: 'bg-brand/10 text-brand', path: '/devices?filter=all' },
-    { label: 'Online', value: summary.onlineDevices, icon: Wifi, accent: 'bg-emerald/10 text-emerald', path: '/devices?filter=online' },
-    { label: 'Offline', value: summary.offlineDevices, icon: WifiOff, accent: 'bg-rose/10 text-rose', path: '/devices?filter=offline' },
     { label: 'Active Alerts', value: summary.activeAlerts, icon: AlertTriangle, accent: summary.activeAlerts > 0 ? 'bg-amber/10 text-amber' : 'bg-surface-dim text-t-muted', path: '/alerts' },
     { label: 'Milk Volume (L)', value: summary.totalVolume.toLocaleString(), icon: Droplets, accent: 'bg-sky/10 text-sky' },
     { label: 'Compressors', value: summary.runningCompressors, icon: Activity, accent: summary.runningCompressors > 0 ? 'bg-emerald/10 text-emerald' : 'bg-surface-dim text-t-muted' },
-    { label: 'DG Running', value: summary.runningDG, icon: Fuel, accent: summary.runningDG > 0 ? 'bg-amber/10 text-amber' : 'bg-surface-dim text-t-muted', path: '/devices?filter=dg-run' },
-    { label: 'Power Failure', value: summary.powerFailure, icon: Zap, accent: summary.powerFailure > 0 ? 'bg-rose/10 text-rose' : 'bg-surface-dim text-t-muted', path: '/devices?filter=power-fail' },
     { label: 'CIP Active', value: summary.cipDevices, icon: Factory, accent: summary.cipDevices > 0 ? 'bg-sky/10 text-sky' : 'bg-surface-dim text-t-muted', path: '/devices?filter=cip' },
     { label: 'Dispatch', value: summary.dispatchDevices, icon: Power, accent: summary.dispatchDevices > 0 ? 'bg-brand/10 text-brand' : 'bg-surface-dim text-t-muted', path: '/devices?filter=dispatch' },
     { label: 'High Temp', value: summary.highTempDevices, icon: Bell, accent: summary.highTempDevices > 0 ? 'bg-rose/10 text-rose' : 'bg-surface-dim text-t-muted', path: '/devices?filter=high-temp' },
@@ -135,32 +130,6 @@ export default function DashboardPage() {
 
       {/* Main Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* BMC Volume & Temperature Bar Chart */}
-        <div className="bg-surface-card border border-edge rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-t-primary mb-4">Volume vs Temperature (All BMC)</h3>
-          <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barChartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-edge)" />
-                <XAxis dataKey="name" tick={{ fill: 'var(--color-t-muted)', fontSize: 10 }} />
-                <YAxis yAxisId="left" orientation="left" stroke="#38bdf8" tick={{ fill: 'var(--color-t-muted)', fontSize: 10 }} name="Volume" />
-                <YAxis yAxisId="right" orientation="right" stroke="#2563eb" tick={{ fill: 'var(--color-t-muted)', fontSize: 10 }} name="Temperature" />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--color-surface-card)',
-                    border: '1px solid var(--color-edge)',
-                    borderRadius: '12px',
-                    color: 'var(--color-t-primary)',
-                  }}
-                />
-                <Legend verticalAlign="top" height={36} iconType="circle" />
-                <Bar yAxisId="left" dataKey="volume" fill="#38bdf8" name="Milk Volume (L)" radius={[4, 4, 0, 0]} />
-                <Bar yAxisId="right" dataKey="temperature" fill="#2563eb" name="Milk Temp (°C)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Power Status Pie Chart */}
         <div className="bg-surface-card border border-edge rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-t-primary mb-4">Power Status Distribution</h3>
@@ -211,39 +180,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Temperature Trend */}
-        <div className="bg-surface-card border border-edge rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-t-primary mb-4">Average Temperature Trend (24h)</h3>
-          <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={mockTrendData}>
-                <defs>
-                  <linearGradient id="tempGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-edge)" />
-                <XAxis dataKey="hour" tick={{ fill: 'var(--color-t-muted)', fontSize: 10 }} />
-                <YAxis tick={{ fill: 'var(--color-t-muted)', fontSize: 10 }} domain={[0, 8]} />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--color-surface-card)',
-                    border: '1px solid var(--color-edge)',
-                    borderRadius: '12px',
-                    color: 'var(--color-t-primary)',
-                  }}
-                />
-                <Area type="monotone" dataKey="temp" stroke="#2563eb" strokeWidth={2} fill="url(#tempGrad)" name="Temperature (°C)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Volume Trend */}
         <div className="bg-surface-card border border-edge rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-t-primary mb-4">Total Milk Volume Trend (24h)</h3>
-          <div className="h-[240px] w-full">
+          <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={mockTrendData}>
                 <defs>
