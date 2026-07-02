@@ -63,7 +63,6 @@ export default function DashboardPage() {
     { label: 'Offline', value: summary.offlineDevices, icon: WifiOff, accent: 'bg-rose/10 text-rose', path: '/devices?filter=offline' },
     { label: 'Active Alerts', value: summary.activeAlerts, icon: AlertTriangle, accent: summary.activeAlerts > 0 ? 'bg-amber/10 text-amber' : 'bg-surface-dim text-t-muted', path: '/alerts' },
     { label: 'Milk Volume (L)', value: summary.totalVolume.toLocaleString(), icon: Droplets, accent: 'bg-sky/10 text-sky' },
-    { label: 'Avg Temperature', value: `${summary.averageTemperature}°C`, icon: Thermometer, accent: 'bg-accent/10 text-accent' },
     { label: 'Compressors', value: summary.runningCompressors, icon: Activity, accent: summary.runningCompressors > 0 ? 'bg-emerald/10 text-emerald' : 'bg-surface-dim text-t-muted' },
     { label: 'DG Running', value: summary.runningDG, icon: Fuel, accent: summary.runningDG > 0 ? 'bg-amber/10 text-amber' : 'bg-surface-dim text-t-muted', path: '/devices?filter=dg-run' },
     { label: 'Power Failure', value: summary.powerFailure, icon: Zap, accent: summary.powerFailure > 0 ? 'bg-rose/10 text-rose' : 'bg-surface-dim text-t-muted', path: '/devices?filter=power-fail' },
