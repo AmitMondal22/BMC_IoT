@@ -77,12 +77,34 @@ module.exports = {
         }
       ]);
     }
+
+    // 3. Register Simulator Device '123456' automatically
+    const [existingDevices] = await queryInterface.sequelize.query(
+      `SELECT id FROM devices WHERE device_code = '123456' LIMIT 1;`
+    );
+
+    if (!existingDevices || existingDevices.length === 0) {
+      await queryInterface.bulkInsert('devices', [{
+        id: uuidv4(),
+        device_code: '123456',
+        device_name: 'Simulated BMC Ahmedabad',
+        tank_capacity: 5000.0,
+        min_tank_volume: 500.0,
+        set_temperature: 4.0,
+        diesel_consumption: 4.0,
+        status: 'active',
+        connection_status: 'offline',
+        created_at: now,
+        updated_at: now,
+      }]);
+    }
   },
 
   down: async (queryInterface) => {
     await queryInterface.bulkDelete('users', { email: 'admin@bmcplatform.com' });
     await queryInterface.bulkDelete('users', { email: 'orgadmin@bmcplatform.com' });
     await queryInterface.bulkDelete('users', { email: 'user@bmcplatform.com' });
+    await queryInterface.bulkDelete('devices', { device_code: '123456' });
     await queryInterface.bulkDelete('organizations', { code: 'DEFAULT' });
   },
 };

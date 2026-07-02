@@ -124,6 +124,22 @@ services:
     networks:
       - bmc_network
 
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: bmc_simulator
+    restart: unless-stopped
+    environment:
+      - MQTT_BROKER_URL=mqtt://mosquitto:1883
+      - DEVICE_CODE=123456
+      - PUBLISH_INTERVAL=5000
+    depends_on:
+      - mosquitto
+      - backend
+    networks:
+      - bmc_network
+
 volumes:
   postgres_data:
   influxdb_data:
