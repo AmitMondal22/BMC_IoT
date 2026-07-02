@@ -29,7 +29,8 @@ module.exports = (sequelize) => {
         'cip_pending',
         'compressor_failure',
         'agitator_failure',
-        'sensor_failure'
+        'sensor_failure',
+        'milk_under_temperature'
       ),
       allowNull: false,
     },

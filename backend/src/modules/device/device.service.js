@@ -159,9 +159,8 @@ class DeviceService {
     if (missingTypes.length > 0) {
       const newConfigs = missingTypes.map(type => {
         let threshold = null;
-        if (type === ALERT_TYPES.HIGH_TEMPERATURE) threshold = device.setTemperature + 4;
         if (type === ALERT_TYPES.MILK_TEMPERATURE_CRITICAL) threshold = device.setTemperature + 8;
-        if (type === ALERT_TYPES.VOLUME_LOW) threshold = device.minTankVolume;
+        if (type === ALERT_TYPES.MILK_UNDER_TEMPERATURE) threshold = 2.0; // 2°C default threshold
 
         return {
           deviceId,

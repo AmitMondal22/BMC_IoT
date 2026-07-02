@@ -20,18 +20,14 @@ const CONNECTION_STATUS = {
 };
 
 const ALERT_TYPES = {
-  HIGH_TEMPERATURE: 'high_temperature',
-  OFFLINE: 'offline',
   POWER_FAILURE: 'power_failure',
   DG_RUNNING: 'dg_running',
   MILK_TEMPERATURE_CRITICAL: 'milk_temperature_critical',
-  VOLUME_LOW: 'volume_low',
-  TANK_EMPTY: 'tank_empty',
+  MILK_UNDER_TEMPERATURE: 'milk_under_temperature',
   DISPATCH_STARTED: 'dispatch_started',
   DISPATCH_COMPLETED: 'dispatch_completed',
   CIP_STARTED: 'cip_started',
   CIP_COMPLETED: 'cip_completed',
-  CIP_PENDING: 'cip_pending',
   COMPRESSOR_FAILURE: 'compressor_failure',
   AGITATOR_FAILURE: 'agitator_failure',
   SENSOR_FAILURE: 'sensor_failure',

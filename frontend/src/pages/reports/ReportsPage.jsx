@@ -110,6 +110,10 @@ export default function ReportsPage() {
       csvContent += `Energy With Compressor,"${reportData.powerStats?.kwhWithCompressor || 0} kWh"\n`;
       csvContent += `Energy Without Compressor,"${reportData.powerStats?.kwhWithoutCompressor || 0} kWh"\n\n`;
 
+      csvContent += `MILK VOLUME & SESSION SUMMARY\n`;
+      csvContent += `Volume Before Morning Session,"${reportData.sessionVolumes?.morningVolume ?? 0} L"\n`;
+      csvContent += `Volume After Evening Session,"${reportData.sessionVolumes?.eveningVolume ?? 0} L"\n\n`;
+
       csvContent += `MILK DISPATCH CYCLES\n`;
       csvContent += `#,Start Time,End Time,Volume Dispatched (L),Avg Temperature (°C)\n`;
       if (reportData.dispatchCycles && reportData.dispatchCycles.length > 0) {
@@ -388,6 +392,54 @@ export default function ReportsPage() {
                             {reportData.powerStats?.kwhConsumed > 0 
                               ? `${Math.round((reportData.powerStats.kwhWithoutCompressor / reportData.powerStats.kwhConsumed) * 100)}% of total energy footprint` 
                               : '0%'}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* ---- Milk Volume & Session Summary Table ---- */}
+                <div className="bg-surface-card border border-edge rounded-2xl overflow-hidden shadow-sm">
+                  <div className="px-6 py-4 border-b border-edge bg-surface-dim/50 flex justify-between items-center">
+                    <h3 className="text-md font-bold text-t-primary flex items-center gap-2">
+                      <Activity size={18} className="text-brand" />
+                      Milk Volume & Session Summary
+                    </h3>
+                    <span className="text-xs text-t-muted font-mono">{formatPeriodText()}</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="bg-surface-dim border-b border-edge text-xs font-semibold uppercase tracking-wider text-t-secondary">
+                          <th className="px-5 py-3.5">Session Metric</th>
+                          <th className="px-5 py-3.5">Calculated Volume</th>
+                          <th className="px-5 py-3.5">Measurement Condition & Logic</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-edge text-t-primary">
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5">
+                            <span className="w-2 h-2 rounded-full bg-brand inline-block" />
+                            Volume Before Morning Session
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-bold text-brand">
+                            {reportData.sessionVolumes?.morningVolume?.toLocaleString() ?? 0} L
+                          </td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">
+                            Accumulated milk volume after the dispatch process (reset to zero) starts increasing again.
+                          </td>
+                        </tr>
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5">
+                            <span className="w-2 h-2 rounded-full bg-sky inline-block" />
+                            Volume After Evening Session
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-bold text-sky">
+                            {reportData.sessionVolumes?.eveningVolume?.toLocaleString() ?? 0} L
+                          </td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">
+                            Measured milk volume once incoming increases halt (volume stable/non-increasing for 60 minutes).
                           </td>
                         </tr>
                       </tbody>

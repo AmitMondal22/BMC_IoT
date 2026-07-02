@@ -156,6 +156,8 @@ class ReportService {
     const dieselRate = device.dieselConsumption || 4.0;
     const dieselConsumed = dgHours * dieselRate;
 
+    const sessionVolumes = this.calculateSessionVolumes(logs);
+
     return {
       device,
       startDate: startDateStr,
@@ -171,6 +173,7 @@ class ReportService {
         kwhWithCompressor: Math.round(kwhWithCompressor * 10) / 10,
         kwhWithoutCompressor: Math.round(kwhWithoutCompressor * 10) / 10,
       },
+      sessionVolumes,
     };
   }
 
@@ -189,6 +192,7 @@ class ReportService {
       dispatchCycles: cyclesReport.dispatchCycles,
       cipCycles: cyclesReport.cipCycles,
       powerStats: cyclesReport.powerStats,
+      sessionVolumes: cyclesReport.sessionVolumes,
     };
   }
 
@@ -428,6 +432,73 @@ class ReportService {
     }
 
     return logs;
+  }
+
+  /**
+   * Calculate morning session peak volume and evening session stabilization volume
+   */
+  calculateSessionVolumes(logs) {
+    if (!logs || logs.length === 0) {
+      return { morningVolume: 0, eveningVolume: 0 };
+    }
+
+    let morningVolume = 0;
+    let eveningVolume = 0;
+
+    // 1. Morning Volume: "after Dispatch process (volume be zero), volume increasing again cause of milk incoming"
+    let dispatchEndIdx = -1;
+    for (let i = 0; i < logs.length; i++) {
+      if (logs[i].milk_volume === 0 || logs[i].dispatch_status) {
+        dispatchEndIdx = i;
+      } else if (dispatchEndIdx !== -1 && logs[i].milk_volume > 0) {
+        break;
+      }
+    }
+
+    if (dispatchEndIdx !== -1) {
+      let peak = 0;
+      for (let i = dispatchEndIdx; i < logs.length; i++) {
+        const vol = logs[i].milk_volume || 0;
+        if (vol >= peak) {
+          peak = vol;
+        } else if (peak > 0 && vol < peak - 50) {
+          break;
+        }
+      }
+      morningVolume = peak;
+    } else {
+      const morningLogs = logs.slice(0, Math.floor(logs.length / 2));
+      morningVolume = morningLogs.length > 0 ? Math.max(...morningLogs.map(l => l.milk_volume || 0)) : 0;
+    }
+
+    // 2. Evening Volume: "after evening session (when volume increasing stop since 60minute)"
+    const secondHalfStart = Math.floor(logs.length / 2);
+    let peakEvening = 0;
+    let stoppedIncreasingIdx = -1;
+
+    for (let i = secondHalfStart; i < logs.length; i++) {
+      const currentVol = logs[i].milk_volume || 0;
+      const prevVol = i > 0 ? (logs[i - 1].milk_volume || 0) : 0;
+
+      if (currentVol > peakEvening) {
+        peakEvening = currentVol;
+      }
+
+      if (i > secondHalfStart && currentVol <= prevVol && prevVol > 0) {
+        stoppedIncreasingIdx = i;
+      }
+    }
+
+    if (stoppedIncreasingIdx !== -1) {
+      eveningVolume = logs[stoppedIncreasingIdx].milk_volume || 0;
+    } else {
+      eveningVolume = peakEvening;
+    }
+
+    return {
+      morningVolume,
+      eveningVolume,
+    };
   }
 }
 

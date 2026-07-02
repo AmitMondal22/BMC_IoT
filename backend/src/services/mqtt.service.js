@@ -210,13 +210,13 @@ class MQTTService {
         return await AlertConfig.findOne({ where: { deviceId: device.id, alertType: type } });
       };
 
-      // High temperature alert
-      const highTempConfig = await getAlertConfig(ALERT_TYPES.HIGH_TEMPERATURE);
-      if (highTempConfig?.enabled !== false && data.milkTemperature != null) {
-        const threshold = highTempConfig?.threshold ?? (device.setTemperature + 4);
-        if (data.milkTemperature > threshold) {
-          await this.createAlert(device, ALERT_TYPES.HIGH_TEMPERATURE, ALERT_SEVERITY.CRITICAL,
-            `Milk temperature ${data.milkTemperature}°C exceeds threshold`,
+      // Milk under temperature alert
+      const underTempConfig = await getAlertConfig(ALERT_TYPES.MILK_UNDER_TEMPERATURE);
+      if (underTempConfig?.enabled !== false && data.milkTemperature != null) {
+        const threshold = underTempConfig?.threshold ?? 2.0;
+        if (data.milkTemperature < threshold) {
+          await this.createAlert(device, ALERT_TYPES.MILK_UNDER_TEMPERATURE, ALERT_SEVERITY.CRITICAL,
+            `Milk temperature ${data.milkTemperature}°C is below threshold ${threshold}°C`,
             data.milkTemperature, threshold);
         }
       }
@@ -229,17 +229,6 @@ class MQTTService {
           await this.createAlert(device, ALERT_TYPES.MILK_TEMPERATURE_CRITICAL, ALERT_SEVERITY.EMERGENCY,
             `CRITICAL: Milk temperature ${data.milkTemperature}°C is dangerously high`,
             data.milkTemperature, threshold);
-        }
-      }
-
-      // Volume low
-      const volConfig = await getAlertConfig(ALERT_TYPES.VOLUME_LOW);
-      if (volConfig?.enabled !== false && data.milkVolume != null && data.milkVolume > 0) {
-        const threshold = volConfig?.threshold ?? device.minTankVolume;
-        if (data.milkVolume < threshold) {
-          await this.createAlert(device, ALERT_TYPES.VOLUME_LOW, ALERT_SEVERITY.WARNING,
-            `Milk volume ${data.milkVolume}L is below minimum ${threshold}L`,
-            data.milkVolume, threshold);
         }
       }
 
