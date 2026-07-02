@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== Theme Variables (Blue & White Theme) ===== */
+:root {
+  /* Brand palette */
+  --color-brand: #2563eb;
+  --color-brand-light: #3b82f6;
+  --color-brand-dark: #1d4ed8;
+  --color-accent: #0284c7;
+  --color-accent-light: #38bdf8;
+  --color-emerald: #10b981;
+  --color-sky: #38bdf8;
+  --color-amber: #f59e0b;
+  --color-rose: #ef4444;
+  --color-violet: #8b5cf6;
+
+  /* Semantic surface colors */
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8fafc;
+  --color-surface-dim: #f1f5f9;
+  --color-surface-input: #f1f5f9;
+  --color-surface-sidebar: #0f172a;
+  --color-surface-card: #ffffff;
+
+  /* Semantic text */
+  --color-t-primary: #0f172a;
+  --color-t-secondary: #475569;
+  --color-t-muted: #94a3b8;
+
+  /* Semantic border */
+  --color-edge: #e2e8f0;
+  --color-edge-subtle: #f1f5f9;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-card-hover: 0 10px 25px rgba(0,0,0,0.05), 0 4px 10px rgba(0,0,0,0.02);
+  --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.12);
+  --shadow-button: 0 4px 14px rgba(37, 99, 235, 0.25);
+
+  /* Legacy layout variable mappings to ensure code compatibility */
+  --color-primary: var(--color-brand);
+  --color-primary-dark: var(--color-brand-dark);
+  --bg-primary: var(--color-surface);
+  --bg-secondary: var(--color-surface-alt);
+  --bg-tertiary: var(--color-surface-dim);
+  --bg-card: var(--color-surface-card);
+  --border-color: var(--color-edge);
+  --border-color-subtle: var(--color-edge-subtle);
+  --text-primary: var(--color-t-primary);
+  --text-secondary: var(--color-t-secondary);
+  --text-muted: var(--color-t-muted);
+  --color-info: var(--color-sky);
+  --color-danger: var(--color-rose);
+  --color-warning: var(--color-amber);
+  --color-success: var(--color-emerald);
+}
+
+/* ===== Dark Theme Override ===== */
+[data-theme="dark"] {
+  --color-brand: #3b82f6;
+  --color-brand-light: #60a5fa;
+  --color-brand-dark: #1d4ed8;
+  --color-accent: #0ea5e9;
+  --color-accent-light: #7dd3fc;
+
+  --color-surface: #0b0f19;
+  --color-surface-alt: #111827;
+  --color-surface-dim: #1f2937;
+  --color-surface-input: #1f2937;
+  --color-surface-sidebar: #0b0f19;
+  --color-surface-card: #1f2937;
+
+  --color-t-primary: #f9fafb;
+  --color-t-secondary: #d1d5db;
+  --color-t-muted: #9ca3af;
+
+  --color-edge: #374151;
+  --color-edge-subtle: #1f2937;
+
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
+  --shadow-button: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+/* ===== Global Resets ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-surface-alt);
+  color: var(--color-t-primary);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-t-muted); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-t-secondary); }
+
+/* ===== Keyframe Animations ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.5); }
+}
+
+/* Animation utilities */
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+.animate-fade-in-scale { animation: fadeInScale 0.35s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.45s ease-out forwards; }
+.animate-pulse-glow { animation: pulseGlow 2s infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+/* Stagger */
+.stagger > * { opacity: 0; animation: fadeIn 0.35s ease-out forwards; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > *:nth-child(7) { animation-delay: 240ms; }
+.stagger > *:nth-child(8) { animation-delay: 280ms; }
+.stagger > *:nth-child(9) { animation-delay: 320ms; }
+.stagger > *:nth-child(10) { animation-delay: 360ms; }
+.stagger > *:nth-child(11) { animation-delay: 400ms; }
+.stagger > *:nth-child(12) { animation-delay: 440ms; }
+
+/* ===== Glass ===== */
+.glass {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+[data-theme="light"] .glass {
+  background: rgba(255,255,255,0.65);
+  border-color: rgba(0,0,0,0.06);
+}
+
+/* ===== Gradient helpers ===== */
+.gradient-brand { background: linear-gradient(135deg, #2563eb, #0ea5e9); }
+.gradient-sidebar { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
+[data-theme="dark"] .gradient-sidebar { background: linear-gradient(180deg, #111827 0%, #0b0f19 100%); }
+
+/* ===== Status Dot ===== */
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0;
+}
+.status-dot.online {
+  background: var(--color-emerald);
+  box-shadow: 0 0 8px rgba(16,185,129,0.6);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+.status-dot.offline {
+  background: var(--color-rose);
+  box-shadow: 0 0 6px rgba(239,68,68,0.4);
+}
+
+/* ===== Skeleton ===== */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface-dim) 25%, var(--color-surface-input) 50%, var(--color-surface-dim) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}

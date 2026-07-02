@@ -1,0 +1,137 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bmc_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bmc_platform
+      POSTGRES_USER: bmc_admin
+      POSTGRES_PASSWORD: bmc_secure_pass_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - bmc_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bmc_admin -d bmc_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: bmc_influxdb
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: bmc_admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: bmc_influx_pass_2024
+      DOCKER_INFLUXDB_INIT_ORG: bmc_org
+      DOCKER_INFLUXDB_INIT_BUCKET: bmc_telemetry
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: bmc_influx_token_2024
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    networks:
+      - bmc_network
+
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    container_name: bmc_dragonfly
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - dragonfly_data:/data
+    ulimits:
+      memlock: -1
+    networks:
+      - bmc_network
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: bmc_mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "19001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    networks:
+      - bmc_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bmc_backend
+    restart: unless-stopped
+    environment:
+      - PORT=3000
+      - HOST=0.0.0.0
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=bmc_platform
+      - DB_USER=bmc_admin
+      - DB_PASSWORD=bmc_secure_pass_2024
+      - DB_DIALECT=postgres
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=bmc_influx_token_2024
+      - INFLUX_ORG=bmc_org
+      - INFLUX_BUCKET=bmc_telemetry
+      - REDIS_HOST=dragonfly
+      - REDIS_PORT=6379
+      - MQTT_BROKER_URL=mqtt://mosquitto:1883
+      - MQTT_CLIENT_ID=bmc-backend-consumer
+      - JWT_SECRET=bmc_jwt_secret_change_in_production_2024
+      - JWT_ACCESS_EXPIRY=15m
+      - JWT_REFRESH_EXPIRY=7d
+      - SUPER_ADMIN_EMAIL=admin@bmcplatform.com
+      - SUPER_ADMIN_PASSWORD=Admin@123456
+      - SUPER_ADMIN_NAME=Super Admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      influxdb:
+        condition: service_started
+      dragonfly:
+        condition: service_started
+      mosquitto:
+        condition: service_started
+    networks:
+      - bmc_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bmc_frontend
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - bmc_network
+
+volumes:
+  postgres_data:
+  influxdb_data:
+  influxdb_config:
+  dragonfly_data:
+  mosquitto_data:
+  mosquitto_log:
+
+networks:
+  bmc_network:
+    driver: bridge
