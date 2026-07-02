@@ -106,9 +106,7 @@ export default function ReportsPage() {
       csvContent += `Grid Hours,"${reportData.powerStats?.gridHours || 0} hrs"\n`;
       csvContent += `DG Hours,"${reportData.powerStats?.dgHours || 0} hrs"\n`;
       csvContent += `Diesel Consumed,"${reportData.powerStats?.dieselConsumed || 0} L (Rate: ${reportData.powerStats?.dieselAvgRate || 0} L/hr)"\n`;
-      csvContent += `Total Energy,"${reportData.powerStats?.kwhConsumed || 0} kWh"\n`;
-      csvContent += `Energy With Compressor,"${reportData.powerStats?.kwhWithCompressor || 0} kWh"\n`;
-      csvContent += `Energy Without Compressor,"${reportData.powerStats?.kwhWithoutCompressor || 0} kWh"\n\n`;
+      csvContent += `Total Energy,"${reportData.powerStats?.kwhConsumed || 0} kWh"\n\n`;
 
       csvContent += `MILK VOLUME & SESSION SUMMARY\n`;
       csvContent += `Volume Before Morning Session,"${reportData.sessionVolumes?.morningVolume ?? 0} L"\n`;
@@ -365,34 +363,6 @@ export default function ReportsPage() {
                           </td>
                           <td className="px-5 py-3.5 font-mono font-bold text-sky">{reportData.powerStats?.kwhConsumed ?? 0} kWh</td>
                           <td className="px-5 py-3.5 text-xs text-t-secondary">Cumulative electricity footprint consumed</td>
-                        </tr>
-
-                        {/* Energy with Compressor */}
-                        <tr className="hover:bg-surface-dim/40 transition-colors">
-                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5 ml-4">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose inline-block" />
-                            Energy with Compressor Load
-                          </td>
-                          <td className="px-5 py-3.5 font-mono font-semibold text-t-primary">{reportData.powerStats?.kwhWithCompressor ?? 0} kWh</td>
-                          <td className="px-5 py-3.5 text-xs text-t-secondary">
-                            {reportData.powerStats?.kwhConsumed > 0 
-                              ? `${Math.round((reportData.powerStats.kwhWithCompressor / reportData.powerStats.kwhConsumed) * 100)}% of total energy footprint` 
-                              : '0%'}
-                          </td>
-                        </tr>
-
-                        {/* Energy without Compressor */}
-                        <tr className="hover:bg-surface-dim/40 transition-colors">
-                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5 ml-4">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald inline-block" />
-                            Energy without Compressor Load
-                          </td>
-                          <td className="px-5 py-3.5 font-mono font-semibold text-t-primary">{reportData.powerStats?.kwhWithoutCompressor ?? 0} kWh</td>
-                          <td className="px-5 py-3.5 text-xs text-t-secondary">
-                            {reportData.powerStats?.kwhConsumed > 0 
-                              ? `${Math.round((reportData.powerStats.kwhWithoutCompressor / reportData.powerStats.kwhConsumed) * 100)}% of total energy footprint` 
-                              : '0%'}
-                          </td>
                         </tr>
                       </tbody>
                     </table>
