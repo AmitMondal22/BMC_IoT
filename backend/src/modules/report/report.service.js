@@ -19,7 +19,7 @@ class ReportService {
         for (let i = 0; i < numPoints; i++) {
           const firstPoint = allLogsReports[0].logs[i];
           let totalMilkVolume = 0;
-          let avgMilkTemp = 0;
+          let avgTemp = 0;
           let numTempPoints = 0;
           let kwhSum = 0;
           
@@ -28,8 +28,8 @@ class ReportService {
             if (pt) {
               totalMilkVolume += pt.milk_volume || 0;
               kwhSum += pt.kwh || 0;
-              if (pt.milk_temperature != null) {
-                avgMilkTemp += pt.milk_temperature;
+              if (pt.temperature != null) {
+                avgTemp += pt.temperature;
                 numTempPoints++;
               }
             }
@@ -38,14 +38,14 @@ class ReportService {
           combinedLogs.push({
             _time: firstPoint._time || firstPoint.timestamp,
             timestamp: firstPoint.timestamp || firstPoint._time,
-            milk_temperature: numTempPoints > 0 ? Math.round((avgMilkTemp / numTempPoints) * 10) / 10 : 4.0,
-            water_temperature: 18.2,
+            temperature: numTempPoints > 0 ? Math.round((avgTemp / numTempPoints) * 10) / 10 : 4.0,
             milk_volume: totalMilkVolume,
             grid_status: allLogsReports.some(lr => lr.logs[i]?.grid_status),
             dg_status: allLogsReports.some(lr => lr.logs[i]?.dg_status),
             kwh: Math.round(kwhSum * 10) / 10,
             cip_status: allLogsReports.some(lr => lr.logs[i]?.cip_status),
             dispatch_status: allLogsReports.some(lr => lr.logs[i]?.dispatch_status),
+            media_type: allLogsReports[0]?.logs[i]?.media_type ?? 0,
           });
         }
       }
@@ -79,7 +79,7 @@ class ReportService {
           |> filter(fn: (r) => r["_measurement"] == "device_telemetry")
           |> filter(fn: (r) => r["deviceId"] == "${deviceId}")
           |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-          |> keep(columns: ["_time", "milk_temperature", "water_temperature", "milk_volume", "tank_level", "kwh", "grid_status", "dg_status", "grid_hours", "dg_hours", "cip_status", "dispatch_status", "compressor1_status", "compressor2_status", "compressor3_status"])
+          |> keep(columns: ["_time", "temperature", "milk_volume", "tank_level", "kwh", "grid_status", "dg_status", "grid_hours", "dg_hours", "cip_status", "dispatch_status", "media_type", "compressor1_status", "compressor2_status", "compressor3_status"])
           |> sort(columns: ["_time"], desc: false)
       `;
       logs = await queryApi.collectRows(fluxQuery);
@@ -208,7 +208,7 @@ class ReportService {
         activeDispatch = {
           startTime: time,
           startVolume: log.milk_volume || 0,
-          temps: [log.milk_temperature || 4.0],
+          temps: [log.temperature || 4.0],
         };
       } else if (!log.dispatch_status && activeDispatch) {
         activeDispatch.endTime = time;
@@ -219,14 +219,14 @@ class ReportService {
         dispatchCycles.push(activeDispatch);
         activeDispatch = null;
       } else if (log.dispatch_status && activeDispatch) {
-        if (log.milk_temperature != null) activeDispatch.temps.push(log.milk_temperature);
+        if (log.temperature != null) activeDispatch.temps.push(log.temperature);
       }
 
       // ---- CIP cycle detection ----
       if (log.cip_status && !activeCip) {
         activeCip = {
           startTime: time,
-          temps: [log.milk_temperature || 35.0],
+          temps: [log.temperature || 35.0],
         };
       } else if (!log.cip_status && activeCip) {
         activeCip.endTime = time;
@@ -235,7 +235,7 @@ class ReportService {
         cipCycles.push(activeCip);
         activeCip = null;
       } else if (log.cip_status && activeCip) {
-        if (log.milk_temperature != null) activeCip.temps.push(log.milk_temperature);
+        if (log.temperature != null) activeCip.temps.push(log.temperature);
       }
 
       previousLog = log;
@@ -404,11 +404,11 @@ class ReportService {
 
     const logRows = logs.map(log => {
       const timeStr = new Date(log._time || log.timestamp).toLocaleString();
-      const tempColor = log.milk_temperature > 8 ? 'color:#dc2626; font-weight:700;' : '';
+      const tempColor = log.temperature > 8 ? 'color:#dc2626; font-weight:700;' : '';
       return `
         <tr>
           <td style="${td} font-family:monospace; font-weight:600;">${timeStr}</td>
-          <td style="${td} ${tempColor}">${log.milk_temperature}°C</td>
+          <td style="${td} ${tempColor}">${log.temperature}°C</td>
           <td style="${td} font-weight:600; color:#0284c7;">${log.milk_volume} L</td>
           <td style="${td}"><span style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700; ${log.grid_status ? 'background:#dcfce7; color:#16a34a;' : 'background:#fee2e2; color:#dc2626;'}">${log.grid_status ? 'GRID OK' : 'FAIL'}</span></td>
           <td style="${td}"><span style="padding:2px 8px; border-radius:6px; font-size:11px; font-weight:700; ${log.dg_status ? 'background:#fef3c7; color:#d97706;' : 'background:#f3f4f6; color:#9ca3af;'}">${log.dg_status ? 'RUNNING' : 'OFF'}</span></td>
@@ -519,8 +519,7 @@ class ReportService {
       logs.push({
         _time: time.toISOString(),
         timestamp: time.toISOString(),
-        milk_temperature: Math.round(currentTemp * 10) / 10,
-        water_temperature: 18.2,
+        temperature: Math.round(currentTemp * 10) / 10,
         milk_volume: Math.round(currentVolume),
         tank_level: Math.round((currentVolume / device.tankCapacity) * 100),
         kwh: Math.round(kwhCounter * 10) / 10,
@@ -533,6 +532,7 @@ class ReportService {
         compressor1_status,
         compressor2_status,
         compressor3_status,
+        media_type: cipStatus ? 1 : currentVolume > 0 ? 2 : 0,
       });
     }
 

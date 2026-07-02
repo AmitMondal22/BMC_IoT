@@ -106,15 +106,26 @@ export default function DeviceDetailPage() {
 
       {/* Primary Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Milk Temperature Card */}
+        {/* Temperature Card — dynamic based on mediaType */}
         <div className="rounded-2xl p-6 relative overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>Milk Temperature</span>
-            <Thermometer size={20} style={{ color: 'var(--color-secondary)' }} />
+            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+              {t.mediaType === 1 ? 'Water Temperature' : t.mediaType === 2 ? 'Milk Temperature' : 'Temperature'}
+            </span>
+            <div className="flex items-center gap-2">
+              {t.mediaType === 1 ? (
+                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">Water</span>
+              ) : t.mediaType === 2 ? (
+                <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold" style={{ background: 'rgba(var(--color-primary-rgb, 99, 102, 241), 0.1)', color: 'var(--color-primary)', border: '1px solid rgba(var(--color-primary-rgb, 99, 102, 241), 0.2)' }}>Milk</span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}>Empty</span>
+              )}
+              <Thermometer size={20} style={{ color: 'var(--color-secondary)' }} />
+            </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold" style={{ color: t.milkTemperature > 8 ? 'var(--color-danger)' : 'var(--text-primary)' }}>
-              {t.milkTemperature != null ? `${t.milkTemperature.toFixed(1)}` : '--'}
+            <span className="text-4xl font-bold" style={{ color: t.temperature > 8 ? 'var(--color-danger)' : 'var(--text-primary)' }}>
+              {t.temperature != null ? `${t.temperature.toFixed(1)}` : '--'}
             </span>
             <span className="text-lg" style={{ color: 'var(--text-muted)' }}>°C</span>
           </div>

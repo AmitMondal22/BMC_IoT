@@ -10,8 +10,7 @@ const { MQTT_TOPICS, CACHE_KEYS, CACHE_TTL, ALERT_TYPES, ALERT_SEVERITY } = requ
 const telemetrySchema = Joi.object({
   deviceId: Joi.string().required(),
   timestamp: Joi.date().iso().default(() => new Date()),
-  milkTemperature: Joi.number().allow(null),
-  waterTemperature: Joi.number().allow(null),
+  temperature: Joi.number().allow(null),
   milkVolume: Joi.number().allow(null),
   tankLevel: Joi.number().allow(null),
   compressor1: Joi.object({ status: Joi.boolean(), runningHours: Joi.number() }).allow(null),
@@ -28,6 +27,7 @@ const telemetrySchema = Joi.object({
   dispatchStatus: Joi.boolean().allow(null),
   milkMode: Joi.boolean().allow(null),
   waterMode: Joi.boolean().allow(null),
+  mediaType: Joi.number().integer().min(0).max(2).allow(null),
   firmware: Joi.string().allow(null, ''),
   hardwareVersion: Joi.string().allow(null, ''),
 }).unknown(true);
@@ -141,8 +141,7 @@ class MQTTService {
         .tag('deviceId', deviceId)
         .tag('deviceCode', deviceCode);
 
-      if (data.milkTemperature != null) point.floatField('milk_temperature', data.milkTemperature);
-      if (data.waterTemperature != null) point.floatField('water_temperature', data.waterTemperature);
+      if (data.temperature != null) point.floatField('temperature', data.temperature);
       if (data.milkVolume != null) point.floatField('milk_volume', data.milkVolume);
       if (data.tankLevel != null) point.floatField('tank_level', data.tankLevel);
       if (data.kwh != null) point.floatField('kwh', data.kwh);
@@ -152,6 +151,7 @@ class MQTTService {
       if (data.dgHours != null) point.floatField('dg_hours', data.dgHours);
       if (data.cipStatus != null) point.booleanField('cip_status', data.cipStatus);
       if (data.dispatchStatus != null) point.booleanField('dispatch_status', data.dispatchStatus);
+      if (data.mediaType != null) point.intField('media_type', data.mediaType);
 
       // Compressors
       for (let i = 1; i <= 3; i++) {
@@ -212,23 +212,23 @@ class MQTTService {
 
       // Milk under temperature alert
       const underTempConfig = await getAlertConfig(ALERT_TYPES.MILK_UNDER_TEMPERATURE);
-      if (underTempConfig?.enabled !== false && data.milkTemperature != null) {
+      if (underTempConfig?.enabled !== false && data.temperature != null) {
         const threshold = underTempConfig?.threshold ?? 2.0;
-        if (data.milkTemperature < threshold) {
+        if (data.temperature < threshold) {
           await this.createAlert(device, ALERT_TYPES.MILK_UNDER_TEMPERATURE, ALERT_SEVERITY.CRITICAL,
-            `Milk temperature ${data.milkTemperature}°C is below threshold ${threshold}°C`,
-            data.milkTemperature, threshold);
+            `Milk temperature ${data.temperature}°C is below threshold ${threshold}°C`,
+            data.temperature, threshold);
         }
       }
 
       // Milk temperature critical
       const critTempConfig = await getAlertConfig(ALERT_TYPES.MILK_TEMPERATURE_CRITICAL);
-      if (critTempConfig?.enabled !== false && data.milkTemperature != null) {
+      if (critTempConfig?.enabled !== false && data.temperature != null) {
         const threshold = critTempConfig?.threshold ?? (device.setTemperature + 8);
-        if (data.milkTemperature > threshold) {
+        if (data.temperature > threshold) {
           await this.createAlert(device, ALERT_TYPES.MILK_TEMPERATURE_CRITICAL, ALERT_SEVERITY.EMERGENCY,
-            `CRITICAL: Milk temperature ${data.milkTemperature}°C is dangerously high`,
-            data.milkTemperature, threshold);
+            `CRITICAL: Milk temperature ${data.temperature}°C is dangerously high`,
+            data.temperature, threshold);
         }
       }
 

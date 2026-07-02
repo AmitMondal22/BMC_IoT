@@ -70,7 +70,7 @@ export default function DashboardPage() {
   const barChartData = devices.slice(0, 10).map(d => ({
     name: d.deviceName,
     volume: d.lastTelemetry?.milkVolume || 0,
-    temperature: d.lastTelemetry?.milkTemperature || 0,
+    temperature: d.lastTelemetry?.temperature || 0,
   }));
 
   // Connection status distribution pie chart data

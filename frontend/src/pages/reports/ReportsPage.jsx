@@ -144,8 +144,9 @@ export default function ReportsPage() {
       if (reportData.logs && reportData.logs.length > 0) {
         reportData.logs.forEach((log) => {
           const timeStr = new Date(log._time || log.timestamp).toLocaleString();
-          const tempStr = `Milk: ${log.milk_temperature?.toFixed(1)}C | Water: ${log.water_temperature?.toFixed(1)}C`;
-          const media = log.cip_status ? 'Water' : (log.milk_volume || 0) > 0 ? 'Milk' : 'Empty';
+          const temp = log.temperature;
+          const tempStr = `${temp?.toFixed(1)}°C`;
+          const media = log.media_type === 1 ? 'Water' : log.media_type === 2 ? 'Milk' : 'Empty';
           const mode = log.cip_status ? 'CIP' : log.dispatch_status ? 'DISPATCH' : 'Cooling';
           csvContent += `"${timeStr}","${tempStr}","${media}",${log.milk_volume},${log.grid_status ? 'OK' : 'FAIL'},${log.dg_status ? 'RUNNING' : 'OFF'},${log.kwh?.toFixed(1)},"${mode}"\n`;
         });
@@ -438,7 +439,7 @@ export default function ReportsPage() {
                     <div>
                       <h3 className="text-md font-bold text-t-primary flex items-center gap-2">
                         <Play size={18} className="text-brand" />
-                        Dispatch Cycles — Milk Temperature & Volume
+                        Dispatch Cycles — Temperature & Volume
                       </h3>
                       <p className="text-xs text-t-muted mt-1">Dispatch start time to end time, volume dispatched, avg temperature</p>
                     </div>
@@ -452,7 +453,7 @@ export default function ReportsPage() {
                           <th className="px-5 py-3.5">Start Time</th>
                           <th className="px-5 py-3.5">End Time</th>
                           <th className="px-5 py-3.5">Volume Dispatched</th>
-                          <th className="px-5 py-3.5">Avg Milk Temp</th>
+                          <th className="px-5 py-3.5">Avg Temp</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-edge text-t-primary">
@@ -562,12 +563,12 @@ export default function ReportsPage() {
                             })}
                           </td>
                           <td className="px-5 py-3 text-t-primary font-semibold text-xs whitespace-nowrap">
-                            Milk: {log.milk_temperature?.toFixed(1)}°C | Water: {log.water_temperature?.toFixed(1)}°C
+                            {log.temperature?.toFixed(1)}°C
                           </td>
                           <td className="px-5 py-3">
-                            {log.cip_status ? (
+                            {log.media_type === 1 ? (
                               <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">Water</span>
-                            ) : (log.milk_volume || 0) > 0 ? (
+                            ) : log.media_type === 2 ? (
                               <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-brand/10 text-brand border border-brand/20">Milk</span>
                             ) : (
                               <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-surface-dim text-t-muted border border-edge">Empty</span>

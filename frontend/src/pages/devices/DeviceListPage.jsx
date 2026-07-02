@@ -52,7 +52,7 @@ export default function DeviceListPage() {
       } else if (filter === 'dispatch') {
         filtered = filtered.filter(d => d.lastTelemetry?.dispatchStatus === true);
       } else if (filter === 'high-temp') {
-        filtered = filtered.filter(d => d.lastTelemetry?.milkTemperature > 8);
+        filtered = filtered.filter(d => d.lastTelemetry?.temperature > 8);
       } else if (filter === 'power-fail') {
         filtered = filtered.filter(d => d.lastTelemetry && !d.lastTelemetry.gridStatus);
       } else if (filter === 'dg-run') {
@@ -195,14 +195,10 @@ export default function DeviceListPage() {
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="bg-surface-dim border-b border-edge text-xs font-semibold uppercase tracking-wider text-t-secondary">
-                <th className="px-5 py-4">Status</th>
                 <th className="px-5 py-4">Device Info</th>
-                <th className="px-5 py-4">Route / Location</th>
-                <th className="px-5 py-4">Milk Temp</th>
-                <th className="px-5 py-4">Milk Volume</th>
-                <th className="px-5 py-4">Power Source</th>
-                <th className="px-5 py-4">Device Mode</th>
-                <th className="px-5 py-4">Last Seen</th>
+                <th className="px-5 py-4">Temperature</th>
+                <th className="px-5 py-4">Media</th>
+                <th className="px-5 py-4">Volume</th>
                 <th className="px-5 py-4 text-right">Actions</th>
               </tr>
             </thead>
@@ -234,9 +230,13 @@ export default function DeviceListPage() {
                 }
 
                 // Format temperature
-                const temp = telemetry.milkTemperature;
+                const temp = telemetry.temperature;
                 const tempText = temp != null ? `${temp.toFixed(1)}°C` : '--';
                 const isHighTemp = temp != null && temp > 8;
+
+                // Media type label
+                const mediaLabel = telemetry.mediaType === 1 ? 'Water' : telemetry.mediaType === 2 ? 'Milk' : 'Empty';
+                const mediaClass = telemetry.mediaType === 1 ? 'bg-blue-500/15 text-blue-500' : telemetry.mediaType === 2 ? 'bg-brand/15 text-brand' : 'bg-surface-dim text-t-muted';
 
                 // Format volume
                 const vol = telemetry.milkVolume;
@@ -262,48 +262,39 @@ export default function DeviceListPage() {
                     onClick={() => navigate(`/devices/${device.id}`)}
                     className="hover:bg-surface-dim/50 cursor-pointer transition-colors duration-200"
                   >
-                    {/* Status indicator */}
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <span className={`status-dot ${isOnline ? 'online' : 'offline'}`} />
-                        <span className={`text-xs font-semibold uppercase ${isOnline ? 'text-emerald' : 'text-rose'}`}>
-                          {device.connectionStatus}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Device info */}
+                    {/* Device info + Status inline */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       <div>
-                        <div className="font-semibold text-t-primary hover:text-brand transition-colors">
-                          {device.deviceName}
+                        <div className="flex items-center gap-2">
+                          <span className={`status-dot ${isOnline ? 'online' : 'offline'}`} />
+                          <div className="font-semibold text-t-primary hover:text-brand transition-colors">
+                            {device.deviceName}
+                          </div>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${isOnline ? 'bg-emerald/10 text-emerald' : 'bg-rose/10 text-rose'}`}>
+                            {device.connectionStatus}
+                          </span>
                         </div>
-                        <div className="text-xs text-t-muted font-mono mt-0.5">
+                        <div className="text-xs text-t-muted font-mono mt-0.5 ml-4">
                           {device.deviceCode}
                         </div>
                       </div>
                     </td>
 
-                    {/* Route Location */}
-                    <td className="px-5 py-4 whitespace-nowrap text-t-secondary">
-                      {device.route ? (
-                        <div>
-                          <div className="font-medium text-xs text-t-primary">{device.route.name}</div>
-                          <div className="text-[10px] text-t-muted">{device.route.subRegion?.name || ''}</div>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-t-muted">Unassigned</span>
-                      )}
-                    </td>
-
-                    {/* Milk Temp */}
+                    {/* Temperature */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       <span className={`font-mono font-bold ${isHighTemp ? 'text-rose' : 'text-t-primary'}`}>
                         {tempText}
                       </span>
                     </td>
 
-                    {/* Milk Volume */}
+                    {/* Media / Status */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${mediaClass}`}>
+                        {mediaLabel}
+                      </span>
+                    </td>
+
+                    {/* Volume */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       <div>
                         <span className="font-mono font-bold text-sky">{volText}</span>
@@ -313,25 +304,6 @@ export default function DeviceListPage() {
                           </div>
                         )}
                       </div>
-                    </td>
-
-                    {/* Power Source */}
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${powerClass}`}>
-                        {powerText}
-                      </span>
-                    </td>
-
-                    {/* Device Mode */}
-                    <td className="px-5 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold uppercase ${modeClass}`}>
-                        {modeText}
-                      </span>
-                    </td>
-
-                    {/* Last Seen */}
-                    <td className="px-5 py-4 whitespace-nowrap text-xs text-t-muted font-medium">
-                      {lastSeenText}
                     </td>
 
                     {/* Action buttons */}
@@ -369,7 +341,7 @@ export default function DeviceListPage() {
               })}
               {devices.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={9} className="text-center py-16 text-t-muted">
+                  <td colSpan={5} className="text-center py-16 text-t-muted">
                     <Monitor size={48} className="mx-auto mb-4 text-t-muted" />
                     <p className="text-lg font-medium text-t-secondary">No devices found in this filter</p>
                   </td>

@@ -42,8 +42,8 @@ class DashboardService {
       if (!t) return;
 
       if (t.milkVolume) totalVolume += parseFloat(t.milkVolume) || 0;
-      if (t.milkTemperature != null) {
-        totalTemperature += parseFloat(t.milkTemperature) || 0;
+      if (t.temperature != null) {
+        totalTemperature += parseFloat(t.temperature) || 0;
         tempCount++;
       }
       if (t.compressor1?.status || t.compressor2?.status || t.compressor3?.status) runningCompressors++;
@@ -51,7 +51,7 @@ class DashboardService {
       if (!t.gridStatus) powerFailure++;
       if (t.cipStatus) cipDevices++;
       if (t.dispatchStatus) dispatchDevices++;
-      if (t.milkTemperature > 8) highTempDevices++;
+      if (t.temperature > 8) highTempDevices++;
     });
 
     const summary = {
