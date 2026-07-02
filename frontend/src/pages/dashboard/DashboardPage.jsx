@@ -73,6 +73,16 @@ export default function DashboardPage() {
     temperature: d.lastTelemetry?.milkTemperature || 0,
   }));
 
+  // Connection status distribution pie chart data
+  const connectionPieChartData = [
+    { name: 'Online Devices', value: summary.onlineDevices, color: '#10b981' },
+    { name: 'Offline Devices', value: summary.offlineDevices, color: '#ef4444' },
+  ].filter(c => c.value > 0);
+
+  if (connectionPieChartData.length === 0) {
+    connectionPieChartData.push({ name: 'No data', value: 1, color: '#6b7280' });
+  }
+
   // Pie chart data: Power status distributions
   const gridPowerOk = Math.max(0, summary.totalDevices - summary.powerFailure - summary.runningDG);
   const pieChartData = [
@@ -81,7 +91,6 @@ export default function DashboardPage() {
     { name: 'DG Generator Running', value: summary.runningDG, color: '#f59e0b' },
   ].filter(p => p.value > 0);
 
-  // If all are zero (e.g. initial launch), provide fallback pie slice
   if (pieChartData.length === 0) {
     pieChartData.push({ name: 'No data', value: 1, color: '#6b7280' });
   }
@@ -130,6 +139,56 @@ export default function DashboardPage() {
 
       {/* Main Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Device Connection Status Pie Chart */}
+        <div className="bg-surface-card border border-edge rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-t-primary mb-4">Device Status Distribution</h3>
+          <div className="h-[280px] w-full flex flex-col md:flex-row items-center justify-center gap-6">
+            <div className="h-[200px] w-[200px] relative shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={connectionPieChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={3}
+                    dataKey="value"
+                  >
+                    {connectionPieChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: 'var(--color-surface-card)',
+                      border: '1px solid var(--color-edge)',
+                      borderRadius: '12px',
+                      color: 'var(--color-t-primary)',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-2xl font-bold text-t-primary">{summary.totalDevices}</span>
+                <span className="text-[10px] text-t-muted uppercase tracking-wider font-semibold">Total BMC</span>
+              </div>
+            </div>
+            
+            <div className="space-y-3 flex-1">
+              {connectionPieChartData.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl border border-edge bg-surface-dim/40 text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="font-medium text-t-secondary">{item.name}</span>
+                  </div>
+                  <span className="font-bold text-t-primary">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Power Status Pie Chart */}
         <div className="bg-surface-card border border-edge rounded-2xl p-6">
           <h3 className="text-lg font-semibold text-t-primary mb-4">Power Status Distribution</h3>
@@ -181,7 +240,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Volume Trend */}
-        <div className="bg-surface-card border border-edge rounded-2xl p-6">
+        <div className="bg-surface-card border border-edge rounded-2xl p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold text-t-primary mb-4">Total Milk Volume Trend (24h)</h3>
           <div className="h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
