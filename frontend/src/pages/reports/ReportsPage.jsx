@@ -124,10 +124,11 @@ export default function ReportsPage() {
       csvContent += `\n`;
 
       csvContent += `CIP CLEANING CYCLES\n`;
-      csvContent += `#,Start Time,End Time,Max Temperature (°C)\n`;
+      csvContent += `#,Start Time,End Time,Hours,Max Temperature (°C)\n`;
       if (reportData.cipCycles && reportData.cipCycles.length > 0) {
         reportData.cipCycles.forEach((c, idx) => {
-          csvContent += `${idx + 1},"${new Date(c.startTime).toLocaleString()}","${new Date(c.endTime).toLocaleString()}",${c.maxTemperature}\n`;
+          const durationHrs = Math.round(((new Date(c.endTime) - new Date(c.startTime)) / 3600000) * 100) / 100;
+          csvContent += `${idx + 1},"${new Date(c.startTime).toLocaleString()}","${new Date(c.endTime).toLocaleString()}",${durationHrs.toFixed(2)},${c.maxTemperature}\n`;
         });
       } else {
         csvContent += `No CIP cleaning cycles recorded for this period.\n`;
@@ -139,12 +140,14 @@ export default function ReportsPage() {
       csvContent += `Device Code,"${reportData.device?.deviceCode || ''}"\n`;
       csvContent += `Period,"${formatPeriodText()}"\n\n`;
 
-      csvContent += `Date & Time,Milk Temp (°C),Water Temp (°C),Volume (L),Grid Status,DG Status,Energy (kWh),Mode\n`;
+      csvContent += `Date & Time,Temperature,Media / Status,Volume (L),Grid Status,DG Status,Energy (kWh),Mode\n`;
       if (reportData.logs && reportData.logs.length > 0) {
         reportData.logs.forEach((log) => {
           const timeStr = new Date(log._time || log.timestamp).toLocaleString();
+          const tempStr = `Milk: ${log.milk_temperature?.toFixed(1)}C | Water: ${log.water_temperature?.toFixed(1)}C`;
+          const media = log.cip_status ? 'Water' : (log.milk_volume || 0) > 0 ? 'Milk' : 'Empty';
           const mode = log.cip_status ? 'CIP' : log.dispatch_status ? 'DISPATCH' : 'Cooling';
-          csvContent += `"${timeStr}",${log.milk_temperature?.toFixed(1)},${log.water_temperature?.toFixed(1)},${log.milk_volume},${log.grid_status ? 'OK' : 'FAIL'},${log.dg_status ? 'RUNNING' : 'OFF'},${log.kwh?.toFixed(1)},"${mode}"\n`;
+          csvContent += `"${timeStr}","${tempStr}","${media}",${log.milk_volume},${log.grid_status ? 'OK' : 'FAIL'},${log.dg_status ? 'RUNNING' : 'OFF'},${log.kwh?.toFixed(1)},"${mode}"\n`;
         });
       } else {
         csvContent += `No log entries available for this period.\n`;
@@ -219,6 +222,7 @@ export default function ReportsPage() {
                 className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-input border border-edge text-t-primary outline-none focus:border-brand transition-all appearance-none cursor-pointer pr-10"
               >
                 <option value="">Select Device</option>
+                <option value="all-project">All Devices (Total Project)</option>
                 {devices.map(d => <option key={d.id} value={d.id}>{d.deviceName} ({d.deviceCode})</option>)}
               </select>
               <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-t-muted pointer-events-none" />
@@ -364,6 +368,17 @@ export default function ReportsPage() {
                           <td className="px-5 py-3.5 font-mono font-bold text-sky">{reportData.powerStats?.kwhConsumed ?? 0} kWh</td>
                           <td className="px-5 py-3.5 text-xs text-t-secondary">Cumulative electricity footprint consumed</td>
                         </tr>
+
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5">
+                            <Activity size={16} className="text-brand" />
+                            Total Milk Dispatched Volume
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-bold text-brand">
+                            {(reportData.powerStats?.totalMilkVolumeDispatched ?? reportData.dispatchCycles?.reduce((sum, c) => sum + (c.volumeDispatched || 0), 0) ?? 0).toLocaleString()} L
+                          </td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">Cumulative volume of milk dispatched from cycles</td>
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -477,20 +492,25 @@ export default function ReportsPage() {
                           <th className="px-5 py-3.5">#</th>
                           <th className="px-5 py-3.5">Start Time</th>
                           <th className="px-5 py-3.5">End Time</th>
+                          <th className="px-5 py-3.5">Hours</th>
                           <th className="px-5 py-3.5">Max Temperature</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-edge text-t-primary">
-                        {reportData.cipCycles?.map((c, idx) => (
-                          <tr key={idx} className="hover:bg-surface-dim/40 transition-colors">
-                            <td className="px-5 py-3.5 font-semibold text-t-muted">{idx + 1}</td>
-                            <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleString()}</td>
-                            <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleString()}</td>
-                            <td className="px-5 py-3.5 font-semibold text-brand">{c.maxTemperature?.toFixed(1)}°C</td>
-                          </tr>
-                        ))}
+                        {reportData.cipCycles?.map((c, idx) => {
+                          const durationHrs = Math.round(((new Date(c.endTime) - new Date(c.startTime)) / 3600000) * 100) / 100;
+                          return (
+                            <tr key={idx} className="hover:bg-surface-dim/40 transition-colors">
+                              <td className="px-5 py-3.5 font-semibold text-t-muted">{idx + 1}</td>
+                              <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleString()}</td>
+                              <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleString()}</td>
+                              <td className="px-5 py-3.5 font-mono font-medium">{durationHrs.toFixed(2)} hrs</td>
+                              <td className="px-5 py-3.5 font-semibold text-brand">{c.maxTemperature?.toFixed(1)}°C</td>
+                            </tr>
+                          );
+                        })}
                         {(!reportData.cipCycles || reportData.cipCycles.length === 0) && (
-                          <tr><td colSpan={4} className="text-center py-12 text-t-muted">No CIP cycles recorded for this period</td></tr>
+                          <tr><td colSpan={5} className="text-center py-12 text-t-muted">No CIP cycles recorded for this period</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -521,8 +541,8 @@ export default function ReportsPage() {
                     <thead>
                       <tr className="bg-surface-dim border-b border-edge text-xs font-semibold uppercase tracking-wider text-t-secondary">
                         <th className="px-5 py-3.5">Date & Time</th>
-                        <th className="px-5 py-3.5">Milk Temp</th>
-                        <th className="px-5 py-3.5">Water Temp</th>
+                        <th className="px-5 py-3.5">Temperature</th>
+                        <th className="px-5 py-3.5">Media / Status</th>
                         <th className="px-5 py-3.5">Volume</th>
                         <th className="px-5 py-3.5">Grid</th>
                         <th className="px-5 py-3.5">DG</th>
@@ -541,12 +561,18 @@ export default function ReportsPage() {
                               minute: '2-digit'
                             })}
                           </td>
-                          <td className="px-5 py-3">
-                            <span className={`font-semibold ${log.milk_temperature > 8 ? 'text-rose font-bold' : ''}`}>
-                              {log.milk_temperature?.toFixed(1)}°C
-                            </span>
+                          <td className="px-5 py-3 text-t-primary font-semibold text-xs whitespace-nowrap">
+                            Milk: {log.milk_temperature?.toFixed(1)}°C | Water: {log.water_temperature?.toFixed(1)}°C
                           </td>
-                          <td className="px-5 py-3 text-t-secondary">{log.water_temperature?.toFixed(1)}°C</td>
+                          <td className="px-5 py-3">
+                            {log.cip_status ? (
+                              <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">Water</span>
+                            ) : (log.milk_volume || 0) > 0 ? (
+                              <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-brand/10 text-brand border border-brand/20">Milk</span>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-surface-dim text-t-muted border border-edge">Empty</span>
+                            )}
+                          </td>
                           <td className="px-5 py-3 font-semibold text-sky">{log.milk_volume?.toLocaleString()} L</td>
                           <td className="px-5 py-3">
                             <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${log.grid_status ? 'bg-emerald/15 text-emerald' : 'bg-rose/15 text-rose'}`}>

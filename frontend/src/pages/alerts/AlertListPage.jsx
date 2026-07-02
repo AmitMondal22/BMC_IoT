@@ -211,14 +211,17 @@ export default function AlertListPage() {
 
                 {/* Content Block */}
                 <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h3 className="font-bold text-[14px] text-t-primary leading-tight">
-                      {alert.message}
-                    </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-brand/10 text-brand border border-brand/20">
+                      {alert.device?.deviceName || alert.device?.deviceCode || 'System'}
+                    </span>
                     <span className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider ${config.badge}`}>
                       {alert.severity}
                     </span>
                   </div>
+                  <h3 className="font-bold text-[14px] text-t-primary leading-tight">
+                    {alert.message}
+                  </h3>
 
                   {/* Metadata Row */}
                   <div className="flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs text-t-muted">

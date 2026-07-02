@@ -9,6 +9,61 @@ class ReportService {
    * Get logbook data from InfluxDB over a date range (startDateStr to endDateStr)
    */
   async getDailyLog(deviceId, startDateStr, endDateStr = startDateStr) {
+    if (deviceId === 'all-project') {
+      const devices = await Device.findAll();
+      const allLogsReports = await Promise.all(devices.map(d => this.getDailyLog(d.id, startDateStr, endDateStr)));
+      
+      const combinedLogs = [];
+      if (allLogsReports.length > 0 && allLogsReports[0].logs.length > 0) {
+        const numPoints = allLogsReports[0].logs.length;
+        for (let i = 0; i < numPoints; i++) {
+          const firstPoint = allLogsReports[0].logs[i];
+          let totalMilkVolume = 0;
+          let avgMilkTemp = 0;
+          let numTempPoints = 0;
+          let kwhSum = 0;
+          
+          allLogsReports.forEach(lr => {
+            const pt = lr.logs[i];
+            if (pt) {
+              totalMilkVolume += pt.milk_volume || 0;
+              kwhSum += pt.kwh || 0;
+              if (pt.milk_temperature != null) {
+                avgMilkTemp += pt.milk_temperature;
+                numTempPoints++;
+              }
+            }
+          });
+
+          combinedLogs.push({
+            _time: firstPoint._time || firstPoint.timestamp,
+            timestamp: firstPoint.timestamp || firstPoint._time,
+            milk_temperature: numTempPoints > 0 ? Math.round((avgMilkTemp / numTempPoints) * 10) / 10 : 4.0,
+            water_temperature: 18.2,
+            milk_volume: totalMilkVolume,
+            grid_status: allLogsReports.some(lr => lr.logs[i]?.grid_status),
+            dg_status: allLogsReports.some(lr => lr.logs[i]?.dg_status),
+            kwh: Math.round(kwhSum * 10) / 10,
+            cip_status: allLogsReports.some(lr => lr.logs[i]?.cip_status),
+            dispatch_status: allLogsReports.some(lr => lr.logs[i]?.dispatch_status),
+          });
+        }
+      }
+
+      return {
+        device: {
+          id: 'all-project',
+          deviceName: 'All Devices (Total Project)',
+          deviceCode: 'PROJECT-TOTAL',
+          tankCapacity: devices.reduce((sum, d) => sum + (d.tankCapacity || 0), 0),
+          dieselConsumption: 4.0,
+        },
+        startDate: startDateStr,
+        endDate: endDateStr,
+        logs: combinedLogs,
+      };
+    }
+
     const device = await Device.findByPk(deviceId);
     if (!device) throw new NotFoundError('Device not found');
 
@@ -55,6 +110,56 @@ class ReportService {
    * Calculate Dispatch/CIP Cycles and Power statistics for a device over a date range
    */
   async getCyclesReport(deviceId, startDateStr, endDateStr = startDateStr) {
+    if (deviceId === 'all-project') {
+      const devices = await Device.findAll();
+      const allCycles = await Promise.all(devices.map(d => this.getCyclesReport(d.id, startDateStr, endDateStr)));
+      
+      const dispatchCycles = [];
+      const cipCycles = [];
+      let gridHours = 0;
+      let dgHours = 0;
+      let totalKwh = 0;
+      let dieselConsumed = 0;
+
+      allCycles.forEach(cr => {
+        dispatchCycles.push(...(cr.dispatchCycles || []));
+        cipCycles.push(...(cr.cipCycles || []));
+        gridHours += cr.powerStats?.gridHours || 0;
+        dgHours += cr.powerStats?.dgHours || 0;
+        dieselConsumed += cr.powerStats?.dieselConsumed || 0;
+        totalKwh += cr.powerStats?.kwhConsumed || 0;
+      });
+
+      // Sort cycles by startTime
+      dispatchCycles.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+      cipCycles.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+      return {
+        device: {
+          id: 'all-project',
+          deviceName: 'All Devices (Total Project)',
+          deviceCode: 'PROJECT-TOTAL',
+          tankCapacity: devices.reduce((sum, d) => sum + (d.tankCapacity || 0), 0),
+          dieselConsumption: 4.0,
+        },
+        startDate: startDateStr,
+        endDate: endDateStr,
+        dispatchCycles,
+        cipCycles,
+        powerStats: {
+          gridHours,
+          dgHours,
+          dieselAvgRate: 4.0,
+          dieselConsumed: Math.round(dieselConsumed * 100) / 100,
+          kwhConsumed: Math.round(totalKwh * 10) / 10,
+          totalMilkVolumeDispatched: dispatchCycles.reduce((sum, c) => sum + (c.volumeDispatched || 0), 0),
+        },
+        sessionVolumes: {
+          morningVolume: allCycles.reduce((sum, cr) => sum + (cr.sessionVolumes?.morningVolume || 0), 0),
+          eveningVolume: allCycles.reduce((sum, cr) => sum + (cr.sessionVolumes?.eveningVolume || 0), 0),
+        },
+      };
+    }
     const { logs, device } = await this.getDailyLog(deviceId, startDateStr, endDateStr);
 
     const dispatchCycles = [];
