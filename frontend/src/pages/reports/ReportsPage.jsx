@@ -302,94 +302,96 @@ export default function ReportsPage() {
             {activeTab === 'day-report' && (
               <div className="space-y-6">
 
-                {/* ---- Power & Energy Section ---- */}
+                {/* ---- Power & Energy Section Table ---- */}
                 <div className="bg-surface-card border border-edge rounded-2xl overflow-hidden">
                   <div className="px-6 py-4 border-b border-edge bg-surface-dim/50 flex justify-between items-center">
                     <h3 className="text-md font-bold text-t-primary flex items-center gap-2">
                       <Zap size={18} className="text-amber" />
-                      Grid / DG / Diesel / KWH Consumption Summary
+                      Grid / DG / Diesel / KWH Summary Report
                     </h3>
                     <span className="text-xs text-t-muted font-mono">{formatPeriodText()}</span>
                   </div>
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                      {/* Grid Hours */}
-                      <div className="bg-surface-dim/40 border border-edge rounded-xl p-4 hover:border-brand/30 transition-colors">
-                        <div className="flex items-center gap-2 mb-2 text-emerald">
-                          <Zap size={16} />
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-t-secondary">Grid Hours</span>
-                        </div>
-                        <div className="text-2xl font-bold text-t-primary">{reportData.powerStats?.gridHours ?? 0} <span className="text-sm font-normal text-t-muted">hrs</span></div>
-                      </div>
-                      {/* DG Hours */}
-                      <div className="bg-surface-dim/40 border border-edge rounded-xl p-4 hover:border-brand/30 transition-colors">
-                        <div className="flex items-center gap-2 mb-2 text-amber">
-                          <Fuel size={16} />
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-t-secondary">DG Hours</span>
-                        </div>
-                        <div className="text-2xl font-bold text-t-primary">{reportData.powerStats?.dgHours ?? 0} <span className="text-sm font-normal text-t-muted">hrs</span></div>
-                      </div>
-                      {/* Diesel Consumed */}
-                      <div className="bg-surface-dim/40 border border-edge rounded-xl p-4 hover:border-brand/30 transition-colors">
-                        <div className="flex items-center gap-2 mb-2 text-rose">
-                          <Fuel size={16} />
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-t-secondary">Diesel Consumed</span>
-                        </div>
-                        <div className="text-2xl font-bold text-t-primary">{reportData.powerStats?.dieselConsumed ?? 0} <span className="text-sm font-normal text-t-muted">L</span></div>
-                        <p className="text-[10px] text-t-muted mt-1">Rate: {reportData.powerStats?.dieselAvgRate ?? 0} L/hr</p>
-                      </div>
-                      {/* Total KWH */}
-                      <div className="bg-surface-dim/40 border border-edge rounded-xl p-4 hover:border-brand/30 transition-colors">
-                        <div className="flex items-center gap-2 mb-2 text-sky">
-                          <Zap size={16} />
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-t-secondary">Total KWH</span>
-                        </div>
-                        <div className="text-2xl font-bold text-t-primary">{reportData.powerStats?.kwhConsumed ?? 0} <span className="text-sm font-normal text-t-muted">kWh</span></div>
-                      </div>
-                    </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="bg-surface-dim border-b border-edge text-xs font-semibold uppercase tracking-wider text-t-secondary">
+                          <th className="px-5 py-3.5">Resource Parameter</th>
+                          <th className="px-5 py-3.5">Calculated Value</th>
+                          <th className="px-5 py-3.5">Details & Contextual Insights</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-edge text-t-primary">
+                        {/* Grid Hours */}
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5">
+                            <Zap size={16} className="text-emerald" />
+                            Grid Run-time
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-bold text-emerald">{reportData.powerStats?.gridHours ?? 0} hrs</td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">Utility grid active operating hours</td>
+                        </tr>
 
-                    {/* KWH with / without compressor */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                      <div className="bg-surface-dim/40 border border-edge rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2 text-rose">
-                          <Activity size={16} />
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-t-secondary">KWH with Compressor Load</span>
-                        </div>
-                        <div className="text-2xl font-bold text-t-primary">{reportData.powerStats?.kwhWithCompressor ?? 0} <span className="text-sm font-normal text-t-muted">kWh</span></div>
-                      </div>
-                      <div className="bg-surface-dim/40 border border-edge rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2 text-emerald">
-                          <Activity size={16} />
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-t-secondary">KWH without Compressor Load</span>
-                        </div>
-                        <div className="text-2xl font-bold text-t-primary">{reportData.powerStats?.kwhWithoutCompressor ?? 0} <span className="text-sm font-normal text-t-muted">kWh</span></div>
-                      </div>
-                    </div>
+                        {/* DG Hours */}
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5">
+                            <Fuel size={16} className="text-amber" />
+                            DG Run-time
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-bold text-amber">{reportData.powerStats?.dgHours ?? 0} hrs</td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">Backup Diesel Generator operating hours</td>
+                        </tr>
 
-                    {/* KWH breakdown bar */}
-                    {(reportData.powerStats?.kwhConsumed ?? 0) > 0 && (
-                      <div>
-                        <p className="text-xs font-semibold text-t-secondary mb-2">KWH Breakdown</p>
-                        <div className="flex rounded-xl overflow-hidden h-7">
-                          <div
-                            className="bg-rose flex items-center justify-center text-white text-[10px] font-bold"
-                            style={{ width: `${(reportData.powerStats.kwhWithCompressor / reportData.powerStats.kwhConsumed * 100).toFixed(1)}%`, minWidth: reportData.powerStats.kwhWithCompressor > 0 ? '36px' : '0' }}
-                          >
-                            {reportData.powerStats.kwhWithCompressor > 0 && `${(reportData.powerStats.kwhWithCompressor / reportData.powerStats.kwhConsumed * 100).toFixed(0)}%`}
-                          </div>
-                          <div
-                            className="bg-emerald flex items-center justify-center text-white text-[10px] font-bold"
-                            style={{ width: `${(reportData.powerStats.kwhWithoutCompressor / reportData.powerStats.kwhConsumed * 100).toFixed(1)}%`, minWidth: reportData.powerStats.kwhWithoutCompressor > 0 ? '36px' : '0' }}
-                          >
-                            {reportData.powerStats.kwhWithoutCompressor > 0 && `${(reportData.powerStats.kwhWithoutCompressor / reportData.powerStats.kwhConsumed * 100).toFixed(0)}%`}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-6 mt-2">
-                          <span className="flex items-center gap-1.5 text-[11px] text-t-secondary"><span className="w-2.5 h-2.5 rounded-sm bg-rose inline-block" /> Compressor ({reportData.powerStats.kwhWithCompressor} kWh)</span>
-                          <span className="flex items-center gap-1.5 text-[11px] text-t-secondary"><span className="w-2.5 h-2.5 rounded-sm bg-emerald inline-block" /> No Compressor ({reportData.powerStats.kwhWithoutCompressor} kWh)</span>
-                        </div>
-                      </div>
-                    )}
+                        {/* Diesel Consumption */}
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5">
+                            <Fuel size={16} className="text-rose" />
+                            Diesel Consumed
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-bold text-rose">{reportData.powerStats?.dieselConsumed ?? 0} L</td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">
+                            Estimated fuel usage (Avg Rate: {reportData.powerStats?.dieselAvgRate ?? 0} L/hr during generator run)
+                          </td>
+                        </tr>
+
+                        {/* Total Energy footprint */}
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5">
+                            <Zap size={16} className="text-sky" />
+                            Total Energy (KWH)
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-bold text-sky">{reportData.powerStats?.kwhConsumed ?? 0} kWh</td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">Cumulative electricity footprint consumed</td>
+                        </tr>
+
+                        {/* Energy with Compressor */}
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5 ml-4">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose inline-block" />
+                            Energy with Compressor Load
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-semibold text-t-primary">{reportData.powerStats?.kwhWithCompressor ?? 0} kWh</td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">
+                            {reportData.powerStats?.kwhConsumed > 0 
+                              ? `${Math.round((reportData.powerStats.kwhWithCompressor / reportData.powerStats.kwhConsumed) * 100)}% of total energy footprint` 
+                              : '0%'}
+                          </td>
+                        </tr>
+
+                        {/* Energy without Compressor */}
+                        <tr className="hover:bg-surface-dim/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium flex items-center gap-2.5 ml-4">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald inline-block" />
+                            Energy without Compressor Load
+                          </td>
+                          <td className="px-5 py-3.5 font-mono font-semibold text-t-primary">{reportData.powerStats?.kwhWithoutCompressor ?? 0} kWh</td>
+                          <td className="px-5 py-3.5 text-xs text-t-secondary">
+                            {reportData.powerStats?.kwhConsumed > 0 
+                              ? `${Math.round((reportData.powerStats.kwhWithoutCompressor / reportData.powerStats.kwhConsumed) * 100)}% of total energy footprint` 
+                              : '0%'}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
