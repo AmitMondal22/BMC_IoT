@@ -122,10 +122,10 @@ export default function ReportsPage() {
       csvContent += `\n`;
 
       csvContent += `CIP CLEANING CYCLES\n`;
-      csvContent += `#,Start Time,End Time,Volume Dispatched (L),Avg Temperature (°C)\n`;
+      csvContent += `#,Start Time,End Time,Max Temperature (°C)\n`;
       if (reportData.cipCycles && reportData.cipCycles.length > 0) {
         reportData.cipCycles.forEach((c, idx) => {
-          csvContent += `${idx + 1},"${new Date(c.startTime).toLocaleString()}","${new Date(c.endTime).toLocaleString()}",${c.volumeDispatched},${c.avgTemperature}\n`;
+          csvContent += `${idx + 1},"${new Date(c.startTime).toLocaleString()}","${new Date(c.endTime).toLocaleString()}",${c.maxTemperature}\n`;
         });
       } else {
         csvContent += `No CIP cleaning cycles recorded for this period.\n`;
@@ -442,7 +442,7 @@ export default function ReportsPage() {
                         <BarChart3 size={18} className="text-sky" />
                         CIP Cycles
                       </h3>
-                      <p className="text-xs text-t-muted mt-1">Start time to end time, volume dispatched, avg temperature</p>
+                      <p className="text-xs text-t-muted mt-1">Start time to end time, max temperature</p>
                     </div>
                     <span className="text-xs text-t-muted font-mono">{formatPeriodText()}</span>
                   </div>
@@ -453,8 +453,7 @@ export default function ReportsPage() {
                           <th className="px-5 py-3.5">#</th>
                           <th className="px-5 py-3.5">Start Time</th>
                           <th className="px-5 py-3.5">End Time</th>
-                          <th className="px-5 py-3.5">Volume Dispatched</th>
-                          <th className="px-5 py-3.5">Avg Temperature</th>
+                          <th className="px-5 py-3.5">Max Temperature</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-edge text-t-primary">
@@ -463,12 +462,11 @@ export default function ReportsPage() {
                             <td className="px-5 py-3.5 font-semibold text-t-muted">{idx + 1}</td>
                             <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleString()}</td>
                             <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleString()}</td>
-                            <td className="px-5 py-3.5 font-bold text-sky">{c.volumeDispatched?.toLocaleString()} L</td>
-                            <td className="px-5 py-3.5 font-semibold text-brand">{c.avgTemperature?.toFixed(1)}°C</td>
+                            <td className="px-5 py-3.5 font-semibold text-brand">{c.maxTemperature?.toFixed(1)}°C</td>
                           </tr>
                         ))}
                         {(!reportData.cipCycles || reportData.cipCycles.length === 0) && (
-                          <tr><td colSpan={5} className="text-center py-12 text-t-muted">No CIP cycles recorded for this period</td></tr>
+                          <tr><td colSpan={4} className="text-center py-12 text-t-muted">No CIP cycles recorded for this period</td></tr>
                         )}
                       </tbody>
                     </table>

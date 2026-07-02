@@ -275,8 +275,7 @@ class ReportService {
           <td style="${td}">${i + 1}</td>
           <td style="${td} font-family:monospace;">${new Date(c.startTime).toLocaleString()}</td>
           <td style="${td} font-family:monospace;">${new Date(c.endTime).toLocaleString()}</td>
-          <td style="${td} font-weight:700; color:#0284c7;">${c.volumeDispatched} L</td>
-          <td style="${td} font-weight:600;">${c.avgTemperature}°C</td>
+          <td style="${td} font-weight:600; color:#ef4444;">${c.maxTemperature}°C</td>
         </tr>
       `).join('');
       cipTable = `
@@ -286,8 +285,7 @@ class ReportService {
               <th style="${th}">#</th>
               <th style="${th}">Start Time</th>
               <th style="${th}">End Time</th>
-              <th style="${th}">Volume Dispatched</th>
-              <th style="${th}">Avg Temperature</th>
+              <th style="${th}">Max Temperature</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
