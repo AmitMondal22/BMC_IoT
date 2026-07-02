@@ -90,6 +90,77 @@ export default function ReportsPage() {
     }
   };
 
+  const exportToCSV = () => {
+    if (!reportData) return;
+
+    let csvContent = "";
+    const filename = `${reportData.device?.deviceName || 'Device'}_Report_${formatPeriodText().replace(/\s+/g, '_')}.csv`;
+
+    if (activeTab === 'day-report') {
+      csvContent += `DEVICE DAY REPORT SUMMARY\n`;
+      csvContent += `Device Name,"${reportData.device?.deviceName || ''}"\n`;
+      csvContent += `Device Code,"${reportData.device?.deviceCode || ''}"\n`;
+      csvContent += `Period,"${formatPeriodText()}"\n\n`;
+
+      csvContent += `POWER & RESOURCE SUMMARY\n`;
+      csvContent += `Grid Hours,"${reportData.powerStats?.gridHours || 0} hrs"\n`;
+      csvContent += `DG Hours,"${reportData.powerStats?.dgHours || 0} hrs"\n`;
+      csvContent += `Diesel Consumed,"${reportData.powerStats?.dieselConsumed || 0} L (Rate: ${reportData.powerStats?.dieselAvgRate || 0} L/hr)"\n`;
+      csvContent += `Total Energy,"${reportData.powerStats?.kwhConsumed || 0} kWh"\n`;
+      csvContent += `Energy With Compressor,"${reportData.powerStats?.kwhWithCompressor || 0} kWh"\n`;
+      csvContent += `Energy Without Compressor,"${reportData.powerStats?.kwhWithoutCompressor || 0} kWh"\n\n`;
+
+      csvContent += `MILK DISPATCH CYCLES\n`;
+      csvContent += `#,Start Time,End Time,Volume Dispatched (L),Avg Temperature (°C)\n`;
+      if (reportData.dispatchCycles && reportData.dispatchCycles.length > 0) {
+        reportData.dispatchCycles.forEach((c, idx) => {
+          csvContent += `${idx + 1},"${new Date(c.startTime).toLocaleString()}","${new Date(c.endTime).toLocaleString()}",${c.volumeDispatched},${c.avgTemperature}\n`;
+        });
+      } else {
+        csvContent += `No dispatch cycles recorded for this period.\n`;
+      }
+      csvContent += `\n`;
+
+      csvContent += `CIP CLEANING CYCLES\n`;
+      csvContent += `#,Start Time,End Time,Volume Dispatched (L),Avg Temperature (°C)\n`;
+      if (reportData.cipCycles && reportData.cipCycles.length > 0) {
+        reportData.cipCycles.forEach((c, idx) => {
+          csvContent += `${idx + 1},"${new Date(c.startTime).toLocaleString()}","${new Date(c.endTime).toLocaleString()}",${c.volumeDispatched},${c.avgTemperature}\n`;
+        });
+      } else {
+        csvContent += `No CIP cleaning cycles recorded for this period.\n`;
+      }
+
+    } else {
+      csvContent += `DAILY LOGBOOK TELEMETRY LOGS\n`;
+      csvContent += `Device Name,"${reportData.device?.deviceName || ''}"\n`;
+      csvContent += `Device Code,"${reportData.device?.deviceCode || ''}"\n`;
+      csvContent += `Period,"${formatPeriodText()}"\n\n`;
+
+      csvContent += `Date & Time,Milk Temp (°C),Water Temp (°C),Volume (L),Grid Status,DG Status,Energy (kWh),Mode\n`;
+      if (reportData.logs && reportData.logs.length > 0) {
+        reportData.logs.forEach((log) => {
+          const timeStr = new Date(log._time || log.timestamp).toLocaleString();
+          const mode = log.cip_status ? 'CIP' : log.dispatch_status ? 'DISPATCH' : 'Cooling';
+          csvContent += `"${timeStr}",${log.milk_temperature?.toFixed(1)},${log.water_temperature?.toFixed(1)},${log.milk_volume},${log.grid_status ? 'OK' : 'FAIL'},${log.dg_status ? 'RUNNING' : 'OFF'},${log.kwh?.toFixed(1)},"${mode}"\n`;
+        });
+      } else {
+        csvContent += `No log entries available for this period.\n`;
+      }
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Report successfully exported to Excel (CSV)');
+  };
+
   const tabs = [
     { key: 'day-report', label: 'Device Day Report', icon: BarChart3 },
     { key: 'logbook', label: 'Daily Logbook', icon: ClipboardList },
@@ -114,12 +185,20 @@ export default function ReportsPage() {
             <p className="text-sm text-t-secondary">Generate date range reports for device daily efficiency and logbook data</p>
           </div>
           {selectedDevice && reportData && (
-            <button
-              onClick={() => { setRecipientEmail(user?.email || ''); setEmailModal(true); }}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark hover:scale-105 transition-all shadow-button shrink-0 cursor-pointer"
-            >
-              <Mail size={16} /> Email Logbook Report
-            </button>
+            <div className="flex flex-wrap gap-2.5">
+              <button
+                onClick={exportToCSV}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald text-white text-sm font-semibold hover:bg-emerald/90 hover:scale-105 transition-all shadow-button shrink-0 cursor-pointer"
+              >
+                <FileText size={16} /> Export Excel
+              </button>
+              <button
+                onClick={() => { setRecipientEmail(user?.email || ''); setEmailModal(true); }}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark hover:scale-105 transition-all shadow-button shrink-0 cursor-pointer"
+              >
+                <Mail size={16} /> Email Logbook Report
+              </button>
+            </div>
           )}
         </div>
 

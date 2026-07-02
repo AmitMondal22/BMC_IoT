@@ -121,14 +121,11 @@ class ReportService {
       if (log.cip_status && !activeCip) {
         activeCip = {
           startTime: time,
-          startVolume: log.milk_volume || 0,
           temps: [log.milk_temperature || 35.0],
         };
       } else if (!log.cip_status && activeCip) {
         activeCip.endTime = time;
-        activeCip.endVolume = log.milk_volume || 0;
-        activeCip.volumeDispatched = Math.max(0, activeCip.startVolume - activeCip.endVolume);
-        activeCip.avgTemperature = this._calcAvg(activeCip.temps, 35.0);
+        activeCip.maxTemperature = activeCip.temps.length > 0 ? Math.max(...activeCip.temps) : 35.0;
         delete activeCip.temps;
         cipCycles.push(activeCip);
         activeCip = null;
@@ -150,9 +147,7 @@ class ReportService {
     }
     if (activeCip) {
       activeCip.endTime = new Date(endDateStr + 'T23:59:59Z');
-      activeCip.endVolume = logs[logs.length - 1]?.milk_volume || 0;
-      activeCip.volumeDispatched = Math.max(0, activeCip.startVolume - activeCip.endVolume);
-      activeCip.avgTemperature = this._calcAvg(activeCip.temps, 35.0);
+      activeCip.maxTemperature = activeCip.temps.length > 0 ? Math.max(...activeCip.temps) : 35.0;
       delete activeCip.temps;
       cipCycles.push(activeCip);
     }
