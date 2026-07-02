@@ -22,10 +22,10 @@ export default function DashboardPage() {
       setSummary(res.data);
     } catch {
       setSummary({
-        totalDevices: 128, onlineDevices: 112, offlineDevices: 16,
-        activeAlerts: 7, totalVolume: 45280, averageTemperature: 4.2,
-        runningCompressors: 89, runningDG: 12, powerFailure: 3,
-        cipDevices: 5, dispatchDevices: 8, highTempDevices: 4,
+        totalDevices: 0, onlineDevices: 0, offlineDevices: 0,
+        activeAlerts: 0, totalVolume: 0, averageTemperature: 0,
+        runningCompressors: 0, runningDG: 0, powerFailure: 0,
+        cipDevices: 0, dispatchDevices: 0, highTempDevices: 0,
       });
     }
   }, []);
@@ -35,13 +35,7 @@ export default function DashboardPage() {
       const res = await dashboardAPI.getDevices();
       setDevices(res.data);
     } catch (e) {
-      setDevices([
-        { deviceName: 'BMC Ahmedabad', lastTelemetry: { milkVolume: 4200, milkTemperature: 3.8 } },
-        { deviceName: 'BMC Baroda', lastTelemetry: { milkVolume: 3500, milkTemperature: 4.2 } },
-        { deviceName: 'BMC Rajkot', lastTelemetry: { milkVolume: 2800, milkTemperature: 8.5 } },
-        { deviceName: 'BMC Surat', lastTelemetry: { milkVolume: 5100, milkTemperature: 3.9 } },
-        { deviceName: 'BMC Anand', lastTelemetry: { milkVolume: 1200, milkTemperature: 4.0 } },
-      ]);
+      setDevices([]);
     }
   }, []);
 
