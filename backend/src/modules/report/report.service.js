@@ -1,20 +1,19 @@
 const { getQueryApi } = require('../../config/influxdb');
-const { Device, User, Organization } = require('../../db/models');
+const { Device } = require('../../db/models');
 const { NotFoundError } = require('../../utils/errors');
 const emailService = require('../../services/email.service');
 const env = require('../../config/env');
 
 class ReportService {
   /**
-   * Get daily logbook data from InfluxDB
+   * Get logbook data from InfluxDB over a date range (startDateStr to endDateStr)
    */
-  async getDailyLog(deviceId, dateStr) {
+  async getDailyLog(deviceId, startDateStr, endDateStr = startDateStr) {
     const device = await Device.findByPk(deviceId);
     if (!device) throw new NotFoundError('Device not found');
 
-    // Fix: avoid Date mutation bug by creating separate Date objects
-    const startOfDay = new Date(dateStr + 'T00:00:00.000Z').toISOString();
-    const endOfDay = new Date(dateStr + 'T23:59:59.999Z').toISOString();
+    const startOfDay = new Date(startDateStr + 'T00:00:00.000Z').toISOString();
+    const endOfDay = new Date(endDateStr + 'T23:59:59.999Z').toISOString();
 
     let logs = [];
     try {
@@ -25,7 +24,7 @@ class ReportService {
           |> filter(fn: (r) => r["_measurement"] == "device_telemetry")
           |> filter(fn: (r) => r["deviceId"] == "${deviceId}")
           |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-          |> keep(columns: ["_time", "milk_temperature", "water_temperature", "milk_volume", "tank_level", "kwh", "grid_status", "dg_status", "grid_hours", "dg_hours", "cip_status", "dispatch_status", "compressor1_status", "compressor2_status", "compressor3_status", "compressor4_status"])
+          |> keep(columns: ["_time", "milk_temperature", "water_temperature", "milk_volume", "tank_level", "kwh", "grid_status", "dg_status", "grid_hours", "dg_hours", "cip_status", "dispatch_status", "compressor1_status", "compressor2_status", "compressor3_status"])
           |> sort(columns: ["_time"], desc: false)
       `;
       logs = await queryApi.collectRows(fluxQuery);
@@ -35,7 +34,7 @@ class ReportService {
 
     // Fallback: if empty, generate hourly mock entries for realistic display
     if (logs.length === 0) {
-      logs = this.generateMockLogs(device, dateStr);
+      logs = this.generateMockLogs(device, startDateStr, endDateStr);
     }
 
     return {
@@ -46,16 +45,17 @@ class ReportService {
         tankCapacity: device.tankCapacity,
         dieselConsumption: device.dieselConsumption,
       },
-      date: dateStr,
+      startDate: startDateStr,
+      endDate: endDateStr,
       logs,
     };
   }
 
   /**
-   * Calculate Dispatch/CIP Cycles and Power statistics for a device over a day
+   * Calculate Dispatch/CIP Cycles and Power statistics for a device over a date range
    */
-  async getCyclesReport(deviceId, dateStr) {
-    const { logs, device } = await this.getDailyLog(deviceId, dateStr);
+  async getCyclesReport(deviceId, startDateStr, endDateStr = startDateStr) {
+    const { logs, device } = await this.getDailyLog(deviceId, startDateStr, endDateStr);
 
     const dispatchCycles = [];
     const cipCycles = [];
@@ -77,8 +77,7 @@ class ReportService {
       const hasCompressorRunning = (entry) => !!(
         entry.compressor1_status ||
         entry.compressor2_status ||
-        entry.compressor3_status ||
-        entry.compressor4_status
+        entry.compressor3_status
       );
 
       // Accumulate KWH differences between consecutive readings
@@ -86,8 +85,6 @@ class ReportService {
         const diff = log.kwh - previousLog.kwh;
         if (diff > 0) {
           totalKwh += diff;
-          // Attribute KWH to compressor or non-compressor based on whether
-          // any compressor was running during this interval
           const isCompressorRunning = hasCompressorRunning(log) || hasCompressorRunning(previousLog);
           if (isCompressorRunning) {
             kwhWithCompressor += diff;
@@ -103,14 +100,12 @@ class ReportService {
 
       // ---- Dispatch cycle detection ----
       if (log.dispatch_status && !activeDispatch) {
-        // Dispatch started
         activeDispatch = {
           startTime: time,
           startVolume: log.milk_volume || 0,
           temps: [log.milk_temperature || 4.0],
         };
       } else if (!log.dispatch_status && activeDispatch) {
-        // Dispatch ended
         activeDispatch.endTime = time;
         activeDispatch.endVolume = log.milk_volume || 0;
         activeDispatch.volumeDispatched = Math.max(0, activeDispatch.startVolume - activeDispatch.endVolume);
@@ -119,20 +114,17 @@ class ReportService {
         dispatchCycles.push(activeDispatch);
         activeDispatch = null;
       } else if (log.dispatch_status && activeDispatch) {
-        // Still dispatching — accumulate temps
         if (log.milk_temperature != null) activeDispatch.temps.push(log.milk_temperature);
       }
 
       // ---- CIP cycle detection ----
       if (log.cip_status && !activeCip) {
-        // CIP started
         activeCip = {
           startTime: time,
           startVolume: log.milk_volume || 0,
           temps: [log.milk_temperature || 35.0],
         };
       } else if (!log.cip_status && activeCip) {
-        // CIP ended
         activeCip.endTime = time;
         activeCip.endVolume = log.milk_volume || 0;
         activeCip.volumeDispatched = Math.max(0, activeCip.startVolume - activeCip.endVolume);
@@ -141,7 +133,6 @@ class ReportService {
         cipCycles.push(activeCip);
         activeCip = null;
       } else if (log.cip_status && activeCip) {
-        // Still in CIP — accumulate temps
         if (log.milk_temperature != null) activeCip.temps.push(log.milk_temperature);
       }
 
@@ -150,7 +141,7 @@ class ReportService {
 
     // Close any open cycles at end of day
     if (activeDispatch) {
-      activeDispatch.endTime = new Date(dateStr + 'T23:59:59Z');
+      activeDispatch.endTime = new Date(endDateStr + 'T23:59:59Z');
       activeDispatch.endVolume = logs[logs.length - 1]?.milk_volume || 0;
       activeDispatch.volumeDispatched = Math.max(0, activeDispatch.startVolume - activeDispatch.endVolume);
       activeDispatch.avgTemperature = this._calcAvg(activeDispatch.temps, 4.0);
@@ -158,7 +149,7 @@ class ReportService {
       dispatchCycles.push(activeDispatch);
     }
     if (activeCip) {
-      activeCip.endTime = new Date(dateStr + 'T23:59:59Z');
+      activeCip.endTime = new Date(endDateStr + 'T23:59:59Z');
       activeCip.endVolume = logs[logs.length - 1]?.milk_volume || 0;
       activeCip.volumeDispatched = Math.max(0, activeCip.startVolume - activeCip.endVolume);
       activeCip.avgTemperature = this._calcAvg(activeCip.temps, 35.0);
@@ -172,12 +163,13 @@ class ReportService {
 
     return {
       device,
-      date: dateStr,
+      startDate: startDateStr,
+      endDate: endDateStr,
       dispatchCycles,
       cipCycles,
       powerStats: {
-        gridHours: Math.min(24, gridHours),
-        dgHours: Math.min(24, dgHours),
+        gridHours: gridHours,
+        dgHours: dgHours,
         dieselAvgRate: dieselRate,
         dieselConsumed: Math.round(dieselConsumed * 100) / 100,
         kwhConsumed: Math.round(totalKwh * 10) / 10,
@@ -188,15 +180,16 @@ class ReportService {
   }
 
   /**
-   * Generate the complete daily report object combining logbook + cycles + power
+   * Generate the complete daily report object over a date range
    */
-  async getFullDailyReport(deviceId, dateStr) {
-    const { device, logs } = await this.getDailyLog(deviceId, dateStr);
-    const cyclesReport = await this.getCyclesReport(deviceId, dateStr);
+  async getFullDailyReport(deviceId, startDateStr, endDateStr = startDateStr) {
+    const { device, logs } = await this.getDailyLog(deviceId, startDateStr, endDateStr);
+    const cyclesReport = await this.getCyclesReport(deviceId, startDateStr, endDateStr);
 
     return {
       device,
-      date: dateStr,
+      startDate: startDateStr,
+      endDate: endDateStr,
       logs,
       dispatchCycles: cyclesReport.dispatchCycles,
       cipCycles: cyclesReport.cipCycles,
@@ -208,7 +201,7 @@ class ReportService {
    * Send daily logbook report via email to a user
    */
   async emailDailyReport(deviceId, dateStr, recipientEmail) {
-    const report = await this.getFullDailyReport(deviceId, dateStr);
+    const report = await this.getFullDailyReport(deviceId, dateStr, dateStr);
     const { device, logs, dispatchCycles, cipCycles, powerStats } = report;
 
     const htmlContent = this._buildEmailHtml(device, dateStr, logs, dispatchCycles, cipCycles, powerStats);
@@ -226,7 +219,6 @@ class ReportService {
     const th = 'padding:10px 12px; border:1px solid #d1d5db; text-align:left; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#4b5563;';
     const td = 'padding:8px 12px; border:1px solid #e5e7eb; font-size:13px; color:#1f2937;';
 
-    // --- Power Summary Table ---
     const powerTable = `
       <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
         <tr>
@@ -254,14 +246,13 @@ class ReportService {
       </table>
     `;
 
-    // --- Dispatch Cycles Table ---
-    let dispatchTable = '<p style="color:#6b7280; font-size:13px;">No dispatch cycles detected for this day.</p>';
+    let dispatchTable = '<p style="color:#6b7280; font-size:13px;">No dispatch cycles detected for this period.</p>';
     if (dispatchCycles.length > 0) {
       const rows = dispatchCycles.map((c, i) => `
         <tr>
           <td style="${td}">${i + 1}</td>
-          <td style="${td} font-family:monospace;">${new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-          <td style="${td} font-family:monospace;">${new Date(c.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td style="${td} font-family:monospace;">${new Date(c.startTime).toLocaleString()}</td>
+          <td style="${td} font-family:monospace;">${new Date(c.endTime).toLocaleString()}</td>
           <td style="${td} font-weight:700; color:#0284c7;">${c.volumeDispatched} L</td>
           <td style="${td} font-weight:600;">${c.avgTemperature}°C</td>
         </tr>
@@ -282,14 +273,13 @@ class ReportService {
       `;
     }
 
-    // --- CIP Cycles Table ---
-    let cipTable = '<p style="color:#6b7280; font-size:13px;">No CIP cleaning cycles detected for this day.</p>';
+    let cipTable = '<p style="color:#6b7280; font-size:13px;">No CIP cleaning cycles detected for this period.</p>';
     if (cipCycles.length > 0) {
       const rows = cipCycles.map((c, i) => `
         <tr>
           <td style="${td}">${i + 1}</td>
-          <td style="${td} font-family:monospace;">${new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-          <td style="${td} font-family:monospace;">${new Date(c.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+          <td style="${td} font-family:monospace;">${new Date(c.startTime).toLocaleString()}</td>
+          <td style="${td} font-family:monospace;">${new Date(c.endTime).toLocaleString()}</td>
           <td style="${td} font-weight:700; color:#0284c7;">${c.volumeDispatched} L</td>
           <td style="${td} font-weight:600;">${c.avgTemperature}°C</td>
         </tr>
@@ -310,9 +300,8 @@ class ReportService {
       `;
     }
 
-    // --- Hourly Logbook Table ---
     const logRows = logs.map(log => {
-      const timeStr = new Date(log._time || log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeStr = new Date(log._time || log.timestamp).toLocaleString();
       const tempColor = log.milk_temperature > 8 ? 'color:#dc2626; font-weight:700;' : '';
       return `
         <tr>
@@ -368,26 +357,30 @@ class ReportService {
 
   // ===================== HELPERS =====================
 
-  /** Calculate average from array, return fallback if empty */
   _calcAvg(arr, fallback) {
     if (!arr || arr.length === 0) return fallback;
     return Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
   }
 
   /**
-   * Generate mock hourly logs for fallback display (when InfluxDB has no data)
+   * Generate mock hourly logs for fallback display over a date range
    */
-  generateMockLogs(device, dateStr) {
+  generateMockLogs(device, startDateStr, endDateStr) {
     const logs = [];
-    const baseDate = new Date(dateStr);
+    const start = new Date(startDateStr + 'T00:00:00.000Z');
+    const end = new Date(endDateStr + 'T23:59:59.999Z');
+
+    // Total hours in difference
+    const diffHours = Math.max(24, Math.ceil((end - start) / 3600000));
     
     let currentVolume = device.tankCapacity * 0.7;
     let currentTemp = 3.8;
     let kwhCounter = 12000.0;
 
-    for (let hour = 0; hour < 24; hour++) {
-      const time = new Date(baseDate);
-      time.setHours(hour, 0, 0, 0);
+    for (let i = 0; i < diffHours; i++) {
+      const time = new Date(start);
+      time.setHours(time.getHours() + i);
+      const hour = time.getHours();
 
       // Grid power simulation: fail around 14:00 to 17:00
       const gridStatus = !(hour >= 14 && hour < 17);
@@ -417,11 +410,9 @@ class ReportService {
 
       kwhCounter += 2.4;
 
-      // Compressor simulation: runs when milk temp is above 4.0 and it's not CIP
       const compressor1_status = currentTemp > 4.0 && !cipStatus;
       const compressor2_status = currentTemp > 6.0 && !cipStatus;
       const compressor3_status = false;
-      const compressor4_status = false;
 
       logs.push({
         _time: time.toISOString(),
@@ -440,7 +431,6 @@ class ReportService {
         compressor1_status,
         compressor2_status,
         compressor3_status,
-        compressor4_status,
       });
     }
 

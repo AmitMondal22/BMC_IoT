@@ -46,7 +46,7 @@ class DashboardService {
         totalTemperature += parseFloat(t.milkTemperature) || 0;
         tempCount++;
       }
-      if (t.compressor1?.status || t.compressor2?.status || t.compressor3?.status || t.compressor4?.status) runningCompressors++;
+      if (t.compressor1?.status || t.compressor2?.status || t.compressor3?.status) runningCompressors++;
       if (t.dgStatus) runningDG++;
       if (!t.gridStatus) powerFailure++;
       if (t.cipStatus) cipDevices++;

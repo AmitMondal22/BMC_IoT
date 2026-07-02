@@ -144,7 +144,6 @@ function publishTelemetry() {
     compressor1: { status: milkTemperature > 4.0 && !cipStatus, runningHours: Math.round(compressorRunningHours * 10) / 10 },
     compressor2: { status: milkTemperature > 6.0 && !cipStatus, runningHours: Math.round((compressorRunningHours * 0.6) * 10) / 10 },
     compressor3: { status: false, runningHours: 0.0 },
-    compressor4: { status: false, runningHours: 0.0 },
     agitator1: { status: (milkTemperature > 4.0 && !cipStatus) || (step % 4 === 0), runningHours: Math.round(agitatorRunningHours * 10) / 10 },
     agitator2: { status: false, runningHours: 0.0 },
     gridStatus,

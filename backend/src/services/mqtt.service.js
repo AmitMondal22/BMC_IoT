@@ -17,7 +17,6 @@ const telemetrySchema = Joi.object({
   compressor1: Joi.object({ status: Joi.boolean(), runningHours: Joi.number() }).allow(null),
   compressor2: Joi.object({ status: Joi.boolean(), runningHours: Joi.number() }).allow(null),
   compressor3: Joi.object({ status: Joi.boolean(), runningHours: Joi.number() }).allow(null),
-  compressor4: Joi.object({ status: Joi.boolean(), runningHours: Joi.number() }).allow(null),
   agitator1: Joi.object({ status: Joi.boolean(), runningHours: Joi.number() }).allow(null),
   agitator2: Joi.object({ status: Joi.boolean(), runningHours: Joi.number() }).allow(null),
   gridStatus: Joi.boolean().allow(null),
@@ -155,7 +154,7 @@ class MQTTService {
       if (data.dispatchStatus != null) point.booleanField('dispatch_status', data.dispatchStatus);
 
       // Compressors
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= 3; i++) {
         const comp = data[`compressor${i}`];
         if (comp) {
           point.booleanField(`compressor${i}_status`, comp.status || false);

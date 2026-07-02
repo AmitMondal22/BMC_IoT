@@ -12,7 +12,10 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState('');
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  
+  // Date Range pickers: From Date & To Date
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // 2 reports: 'day-report' | 'logbook'
   const [activeTab, setActiveTab] = useState('day-report');
@@ -37,12 +40,28 @@ export default function ReportsPage() {
       .catch(() => toast.error('Failed to load devices list'));
   }, []);
 
-  // Fetch the full daily report in one API call
+  // Fetch the full report over a date range in one API call
   const fetchReport = useCallback(async () => {
-    if (!selectedDevice || !selectedDate) return;
+    if (!selectedDevice) {
+      toast.error('Please select a device');
+      return;
+    }
+    if (!startDate || !endDate) {
+      toast.error('Please select both Start and End dates');
+      return;
+    }
+    if (new Date(startDate) > new Date(endDate)) {
+      toast.error('Start Date cannot be after End Date');
+      return;
+    }
+
     setLoadingReport(true);
     try {
-      const res = await reportAPI.getFullDaily({ deviceId: selectedDevice, date: selectedDate });
+      const res = await reportAPI.getFullDaily({
+        deviceId: selectedDevice,
+        startDate: startDate,
+        endDate: endDate
+      });
       setReportData(res.data?.data || res.data);
     } catch (err) {
       toast.error('Failed to fetch report data');
@@ -50,22 +69,19 @@ export default function ReportsPage() {
     } finally {
       setLoadingReport(false);
     }
-  }, [selectedDevice, selectedDate]);
-
-  useEffect(() => {
-    if (selectedDevice) fetchReport();
-  }, [fetchReport, selectedDevice]);
+  }, [selectedDevice, startDate, endDate]);
 
   const handleSendEmail = async (e) => {
     e.preventDefault();
     setSendingEmail(true);
     try {
+      // Email works for a specific date (auto-sends single daily logbook report)
       await reportAPI.emailDailyLog({
         deviceId: selectedDevice,
-        date: selectedDate,
+        date: startDate,
         email: recipientEmail,
       });
-      toast.success(`Daily logbook report emailed to ${recipientEmail}`);
+      toast.success(`Logbook report for ${startDate} emailed to ${recipientEmail}`);
       setEmailModal(false);
     } catch (err) {
       toast.error('Failed to send report email');
@@ -79,6 +95,13 @@ export default function ReportsPage() {
     { key: 'logbook', label: 'Daily Logbook', icon: ClipboardList },
   ];
 
+  const formatPeriodText = () => {
+    if (!reportData) return '';
+    const start = reportData.startDate;
+    const end = reportData.endDate;
+    return start === end ? start : `${start} to ${end}`;
+  };
+
   return (
     <>
       <div className="space-y-6 animate-fade-in">
@@ -86,14 +109,14 @@ export default function ReportsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-t-primary flex items-center gap-2">
-              <FileText className="text-brand" /> Reports
+              <FileText className="text-brand" /> Reports & Analytics
             </h1>
-            <p className="text-sm text-t-secondary">Device day report and daily logbook with auto-email</p>
+            <p className="text-sm text-t-secondary">Generate date range reports for device daily efficiency and logbook data</p>
           </div>
-          {selectedDevice && (
+          {selectedDevice && reportData && (
             <button
               onClick={() => { setRecipientEmail(user?.email || ''); setEmailModal(true); }}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark hover:scale-105 transition-all shadow-button shrink-0"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark hover:scale-105 transition-all shadow-button shrink-0 cursor-pointer"
             >
               <Mail size={16} /> Email Logbook Report
             </button>
@@ -101,8 +124,9 @@ export default function ReportsPage() {
         </div>
 
         {/* Selector controls */}
-        <div className="bg-surface-card border border-edge rounded-2xl p-5 flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 space-y-2">
+        <form onSubmit={(e) => { e.preventDefault(); fetchReport(); }} className="bg-surface-card border border-edge rounded-2xl p-5 grid grid-cols-1 md:grid-cols-4 gap-4 items-end shadow-sm">
+          {/* Target Device */}
+          <div className="space-y-2">
             <label className="text-xs font-semibold uppercase tracking-wider text-t-secondary flex items-center gap-1.5">
               <Monitor size={14} /> Target BMC Device
             </label>
@@ -110,6 +134,7 @@ export default function ReportsPage() {
               <select
                 value={selectedDevice}
                 onChange={(e) => setSelectedDevice(e.target.value)}
+                required
                 className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-input border border-edge text-t-primary outline-none focus:border-brand transition-all appearance-none cursor-pointer pr-10"
               >
                 <option value="">Select Device</option>
@@ -119,44 +144,63 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="flex-1 space-y-2">
+          {/* From Date */}
+          <div className="space-y-2">
             <label className="text-xs font-semibold uppercase tracking-wider text-t-secondary flex items-center gap-1.5">
-              <Calendar size={14} /> Report Date
+              <Calendar size={14} /> From Date
             </label>
             <input
               type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              required
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-input border border-edge text-t-primary outline-none focus:border-brand transition-all"
             />
           </div>
 
+          {/* To Date */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-wider text-t-secondary flex items-center gap-1.5">
+              <Calendar size={14} /> To Date
+            </label>
+            <input
+              type="date"
+              required
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-input border border-edge text-t-primary outline-none focus:border-brand transition-all"
+            />
+          </div>
+
+          {/* Submit Action */}
           <button
-            onClick={fetchReport}
+            type="submit"
             disabled={loadingReport}
-            className="px-5 py-2.5 bg-surface-dim hover:bg-surface-dim/75 text-t-primary rounded-xl text-sm font-semibold border border-edge flex items-center gap-2 transition-colors hover:border-brand/40 disabled:opacity-50"
+            className="w-full py-2.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-button disabled:opacity-50 cursor-pointer"
           >
-            <RefreshCw size={16} className={loadingReport ? 'animate-spin' : ''} /> Refresh
+            <RefreshCw size={16} className={loadingReport ? 'animate-spin' : ''} /> Generate Report
           </button>
-        </div>
+        </form>
 
         {/* 2 Report Tabs */}
-        <div className="flex border-b border-edge">
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all -mb-px whitespace-nowrap ${
-                activeTab === tab.key
-                  ? 'border-brand text-brand'
-                  : 'border-transparent text-t-secondary hover:text-t-primary'
-              }`}
-            >
-              <tab.icon size={16} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {reportData && (
+          <div className="flex border-b border-edge">
+            {tabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all -mb-px whitespace-nowrap cursor-pointer ${
+                  activeTab === tab.key
+                    ? 'border-brand text-brand'
+                    : 'border-transparent text-t-secondary hover:text-t-primary'
+                }`}
+              >
+                <tab.icon size={16} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Loading / Empty */}
         {loadingReport ? (
@@ -166,7 +210,8 @@ export default function ReportsPage() {
         ) : !reportData ? (
           <div className="flex flex-col items-center justify-center py-20 bg-surface-card border border-edge rounded-2xl">
             <FileText size={48} className="text-t-muted mb-4" />
-            <p className="text-t-muted text-sm">Select a device and date to generate report</p>
+            <h3 className="font-bold text-t-primary text-md">No Report Generated</h3>
+            <p className="text-t-muted text-xs mt-1">Select target device and date range to query report data</p>
           </div>
         ) : (
           <div className="animate-fade-in">
@@ -180,11 +225,12 @@ export default function ReportsPage() {
 
                 {/* ---- Power & Energy Section ---- */}
                 <div className="bg-surface-card border border-edge rounded-2xl overflow-hidden">
-                  <div className="px-6 py-4 border-b border-edge bg-surface-dim/50">
+                  <div className="px-6 py-4 border-b border-edge bg-surface-dim/50 flex justify-between items-center">
                     <h3 className="text-md font-bold text-t-primary flex items-center gap-2">
                       <Zap size={18} className="text-amber" />
-                      Grid / DG / Diesel / KWH Consumption
+                      Grid / DG / Diesel / KWH Consumption Summary
                     </h3>
+                    <span className="text-xs text-t-muted font-mono">{formatPeriodText()}</span>
                   </div>
                   <div className="p-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -270,12 +316,15 @@ export default function ReportsPage() {
 
                 {/* ---- Dispatch Cycles Section ---- */}
                 <div className="bg-surface-card border border-edge rounded-2xl overflow-hidden">
-                  <div className="px-6 py-4 border-b border-edge bg-surface-dim/50">
-                    <h3 className="text-md font-bold text-t-primary flex items-center gap-2">
-                      <Play size={18} className="text-brand" />
-                      Dispatch Cycles — Milk Temperature & Volume
-                    </h3>
-                    <p className="text-xs text-t-muted mt-1">Dispatch start time to end time, volume dispatched, avg temperature</p>
+                  <div className="px-6 py-4 border-b border-edge bg-surface-dim/50 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-md font-bold text-t-primary flex items-center gap-2">
+                        <Play size={18} className="text-brand" />
+                        Dispatch Cycles — Milk Temperature & Volume
+                      </h3>
+                      <p className="text-xs text-t-muted mt-1">Dispatch start time to end time, volume dispatched, avg temperature</p>
+                    </div>
+                    <span className="text-xs text-t-muted font-mono">{formatPeriodText()}</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-left text-sm">
@@ -292,14 +341,14 @@ export default function ReportsPage() {
                         {reportData.dispatchCycles?.map((c, idx) => (
                           <tr key={idx} className="hover:bg-surface-dim/40 transition-colors">
                             <td className="px-5 py-3.5 font-semibold text-t-muted">{idx + 1}</td>
-                            <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                            <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleString()}</td>
+                            <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleString()}</td>
                             <td className="px-5 py-3.5 font-bold text-sky">{c.volumeDispatched?.toLocaleString()} L</td>
                             <td className="px-5 py-3.5 font-semibold">{c.avgTemperature?.toFixed(1)}°C</td>
                           </tr>
                         ))}
                         {(!reportData.dispatchCycles || reportData.dispatchCycles.length === 0) && (
-                          <tr><td colSpan={5} className="text-center py-12 text-t-muted">No dispatch cycles recorded for this day</td></tr>
+                          <tr><td colSpan={5} className="text-center py-12 text-t-muted">No dispatch cycles recorded for this period</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -308,12 +357,15 @@ export default function ReportsPage() {
 
                 {/* ---- CIP Cycles Section ---- */}
                 <div className="bg-surface-card border border-edge rounded-2xl overflow-hidden">
-                  <div className="px-6 py-4 border-b border-edge bg-surface-dim/50">
-                    <h3 className="text-md font-bold text-t-primary flex items-center gap-2">
-                      <BarChart3 size={18} className="text-sky" />
-                      CIP Cycles
-                    </h3>
-                    <p className="text-xs text-t-muted mt-1">Start time to end time, volume dispatched, avg temperature</p>
+                  <div className="px-6 py-4 border-b border-edge bg-surface-dim/50 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-md font-bold text-t-primary flex items-center gap-2">
+                        <BarChart3 size={18} className="text-sky" />
+                        CIP Cycles
+                      </h3>
+                      <p className="text-xs text-t-muted mt-1">Start time to end time, volume dispatched, avg temperature</p>
+                    </div>
+                    <span className="text-xs text-t-muted font-mono">{formatPeriodText()}</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-left text-sm">
@@ -330,14 +382,14 @@ export default function ReportsPage() {
                         {reportData.cipCycles?.map((c, idx) => (
                           <tr key={idx} className="hover:bg-surface-dim/40 transition-colors">
                             <td className="px-5 py-3.5 font-semibold text-t-muted">{idx + 1}</td>
-                            <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                            <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleString()}</td>
+                            <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleString()}</td>
                             <td className="px-5 py-3.5 font-bold text-sky">{c.volumeDispatched?.toLocaleString()} L</td>
                             <td className="px-5 py-3.5 font-semibold text-brand">{c.avgTemperature?.toFixed(1)}°C</td>
                           </tr>
                         ))}
                         {(!reportData.cipCycles || reportData.cipCycles.length === 0) && (
-                          <tr><td colSpan={5} className="text-center py-12 text-t-muted">No CIP cycles recorded for this day</td></tr>
+                          <tr><td colSpan={5} className="text-center py-12 text-t-muted">No CIP cycles recorded for this period</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -359,14 +411,15 @@ export default function ReportsPage() {
                       <ClipboardList size={18} className="text-brand" />
                       Daily Logbook — {reportData.device?.deviceName}
                     </h3>
-                    <p className="text-xs text-t-muted mt-1">All data of {reportData.date} • Auto-emailed daily at midnight</p>
+                    <p className="text-xs text-t-muted mt-1">All telemetry logs over the queried date range</p>
                   </div>
+                  <span className="text-xs text-t-muted font-mono">{formatPeriodText()}</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse text-left text-sm">
                     <thead>
                       <tr className="bg-surface-dim border-b border-edge text-xs font-semibold uppercase tracking-wider text-t-secondary">
-                        <th className="px-5 py-3.5">Time</th>
+                        <th className="px-5 py-3.5">Date & Time</th>
                         <th className="px-5 py-3.5">Milk Temp</th>
                         <th className="px-5 py-3.5">Water Temp</th>
                         <th className="px-5 py-3.5">Volume</th>
@@ -380,7 +433,12 @@ export default function ReportsPage() {
                       {reportData.logs?.map((log, idx) => (
                         <tr key={idx} className="hover:bg-surface-dim/40 transition-colors">
                           <td className="px-5 py-3 font-mono font-medium">
-                            {new Date(log._time || log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(log._time || log.timestamp).toLocaleString([], {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
                           </td>
                           <td className="px-5 py-3">
                             <span className={`font-semibold ${log.milk_temperature > 8 ? 'text-rose font-bold' : ''}`}>
@@ -412,7 +470,7 @@ export default function ReportsPage() {
                         </tr>
                       ))}
                       {(!reportData.logs || reportData.logs.length === 0) && (
-                        <tr><td colSpan={8} className="text-center py-16 text-t-muted">No hourly log records available for this date</td></tr>
+                        <tr><td colSpan={8} className="text-center py-16 text-t-muted">No telemetry log records available for this date range</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -438,7 +496,7 @@ export default function ReportsPage() {
             </div>
 
             <p className="text-xs text-t-secondary">
-              Sends the full daily logbook report for <strong>{reportData?.device?.deviceName}</strong> on <strong>{selectedDate}</strong> via email.
+              Sends the full daily logbook report for <strong>{reportData?.device?.deviceName}</strong> on <strong>{startDate}</strong> via email.
             </p>
 
             <form onSubmit={handleSendEmail} className="space-y-4">

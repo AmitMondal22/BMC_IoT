@@ -165,7 +165,7 @@ export default function DeviceDetailPage() {
             {/* Compressors */}
             <div className="space-y-4">
               <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Compressors</span>
-              {[1, 2, 3, 4].map((num) => {
+              {[1, 2, 3].map((num) => {
                 const comp = t[`compressor${num}`] || {};
                 return (
                   <div key={num} className="flex items-center justify-between p-3.5 rounded-xl" style={{ background: 'var(--bg-tertiary)' }}>
