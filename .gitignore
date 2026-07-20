@@ -50,3 +50,8 @@ pgdata/
 influxdata/
 mosquitto/data/
 mosquitto/log/
+
+
+simulator/
+native_app/
+frontend/
