@@ -13,4 +13,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all && npm run start"]
+CMD ["sh", "-c", "npm run db:sync && npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all && npm run start"]

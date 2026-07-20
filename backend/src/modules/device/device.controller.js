@@ -43,6 +43,42 @@ class DeviceController {
     const result = await deviceService.updateAlertConfigs(req.params.id, req.body, req.userId);
     return response.success(reply, result, 'Alert configurations updated');
   }
+
+  async uploadSnapshot(req, reply) {
+    const data = await req.file();
+    if (!data) {
+      throw new Error('No snapshot image file uploaded');
+    }
+
+    const remarks = data.fields.remarks?.value || '';
+    const latitude = data.fields.latitude?.value ? parseFloat(data.fields.latitude.value) : null;
+    const longitude = data.fields.longitude?.value ? parseFloat(data.fields.longitude.value) : null;
+    const capturedAt = data.fields.capturedAt?.value || new Date().toISOString();
+
+    const fileBuffer = await data.toBuffer();
+    const filename = `${req.params.id}_${Date.now()}_snapshot.jpg`;
+
+    const result = await deviceService.saveSnapshot(req.params.id, fileBuffer, filename, {
+      remarks,
+      latitude,
+      longitude,
+      capturedAt
+    });
+
+    return response.success(reply, result, 'Snapshot uploaded successfully');
+  }
+
+  async sendCommand(req, reply) {
+    const { deviceCode } = req.params;
+    const { command } = req.body;
+
+    if (!command) {
+      throw new Error('Command content is required');
+    }
+
+    await deviceService.sendCommand(deviceCode, command);
+    return response.success(reply, null, `Command published successfully to /MPDSUB/${deviceCode}`);
+  }
 }
 
 module.exports = new DeviceController();

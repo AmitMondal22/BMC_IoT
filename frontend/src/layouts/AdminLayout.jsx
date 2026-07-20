@@ -5,18 +5,19 @@ import { useTheme } from '../context/ThemeContext';
 import {
   LayoutDashboard, Monitor, Users, MapPin, Route, Bell,
   FileText, LogOut, Menu, X, Sun, Moon, Layers,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Shield, Building2
 } from 'lucide-react';
 
 const navItems = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { path: '/organizations', icon: Building2, label: 'Organizations', adminOnly: true },
   { path: '/devices', icon: Monitor, label: 'Devices' },
   { path: '/users', icon: Users, label: 'Users', adminOnly: true },
   { path: '/regions', icon: MapPin, label: 'Regions', adminOnly: true },
-  { path: '/sub-regions', icon: Layers, label: 'Sub Regions' },
   { path: '/routes', icon: Route, label: 'Routes' },
   { path: '/alerts', icon: Bell, label: 'Alerts' },
   { path: '/reports', icon: FileText, label: 'Reports' },
+  { path: '/audit-logs', icon: Shield, label: 'Audit Logs', adminOnly: true },
 ];
 
 export default function AdminLayout() {

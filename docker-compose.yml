@@ -53,20 +53,6 @@ services:
     networks:
       - bmc_network
 
-  mosquitto:
-    image: eclipse-mosquitto:2
-    container_name: bmc_mosquitto
-    restart: unless-stopped
-    ports:
-      - "1883:1883"
-      - "19001:9001"
-    volumes:
-      - ./mosquitto/config:/mosquitto/config
-      - mosquitto_data:/mosquitto/data
-      - mosquitto_log:/mosquitto/log
-    networks:
-      - bmc_network
-
   backend:
     build:
       context: ./backend
@@ -89,8 +75,10 @@ services:
       - INFLUX_BUCKET=bmc_telemetry
       - REDIS_HOST=dragonfly
       - REDIS_PORT=6379
-      - MQTT_BROKER_URL=mqtt://mosquitto:1883
+      - MQTT_BROKER_URL=mqtt://mqttfps.iotblitz.in
       - MQTT_CLIENT_ID=bmc-backend-consumer
+      - MQTT_USERNAME=ibfps
+      - MQTT_PASSWORD=ib8520
       - JWT_SECRET=bmc_jwt_secret_change_in_production_2024
       - JWT_ACCESS_EXPIRY=15m
       - JWT_REFRESH_EXPIRY=7d
@@ -105,8 +93,6 @@ services:
       influxdb:
         condition: service_started
       dragonfly:
-        condition: service_started
-      mosquitto:
         condition: service_started
     networks:
       - bmc_network
@@ -124,29 +110,12 @@ services:
     networks:
       - bmc_network
 
-  simulator:
-    build:
-      context: ./simulator
-      dockerfile: Dockerfile
-    container_name: bmc_simulator
-    restart: unless-stopped
-    environment:
-      - MQTT_BROKER_URL=mqtt://mosquitto:1883
-      - DEVICE_CODE=123456
-      - PUBLISH_INTERVAL=5000
-    depends_on:
-      - mosquitto
-      - backend
-    networks:
-      - bmc_network
 
 volumes:
   postgres_data:
   influxdb_data:
   influxdb_config:
   dragonfly_data:
-  mosquitto_data:
-  mosquitto_log:
 
 networks:
   bmc_network:

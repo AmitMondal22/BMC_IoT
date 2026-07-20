@@ -2,42 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Theme Variables (Blue & White Theme) ===== */
+/* ===== Theme Variables (Yellow & Black Theme) ===== */
 :root {
   /* Brand palette */
-  --color-brand: #2563eb;
-  --color-brand-light: #3b82f6;
-  --color-brand-dark: #1d4ed8;
-  --color-accent: #0284c7;
-  --color-accent-light: #38bdf8;
+  --color-brand: #eab308;
+  --color-brand-light: #fef08a;
+  --color-brand-dark: #ca8a04;
+  --color-accent: #facc15;
+  --color-accent-light: #fef08a;
   --color-emerald: #10b981;
-  --color-sky: #38bdf8;
-  --color-amber: #f59e0b;
+  --color-sky: #facc15;
+  --color-amber: #eab308;
   --color-rose: #ef4444;
-  --color-violet: #8b5cf6;
+  --color-violet: #d97706;
 
   /* Semantic surface colors */
   --color-surface: #ffffff;
-  --color-surface-alt: #f8fafc;
-  --color-surface-dim: #f1f5f9;
-  --color-surface-input: #f1f5f9;
-  --color-surface-sidebar: #0f172a;
+  --color-surface-alt: #ffffff;
+  --color-surface-dim: #fafafa;
+  --color-surface-input: #f5f5f5;
+  --color-surface-sidebar: #000000;
   --color-surface-card: #ffffff;
 
   /* Semantic text */
-  --color-t-primary: #0f172a;
-  --color-t-secondary: #475569;
-  --color-t-muted: #94a3b8;
+  --color-t-primary: #000000;
+  --color-t-secondary: #262626;
+  --color-t-muted: #737373;
 
   /* Semantic border */
-  --color-edge: #e2e8f0;
-  --color-edge-subtle: #f1f5f9;
+  --color-edge: #e5e5e5;
+  --color-edge-subtle: #f5f5f5;
 
   /* Shadows */
   --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
   --shadow-card-hover: 0 10px 25px rgba(0,0,0,0.05), 0 4px 10px rgba(0,0,0,0.02);
-  --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.12);
-  --shadow-button: 0 4px 14px rgba(37, 99, 235, 0.25);
+  --shadow-glow: 0 0 20px rgba(234, 179, 8, 0.12);
+  --shadow-button: 0 4px 14px rgba(234, 179, 8, 0.25);
 
   /* Legacy layout variable mappings to ensure code compatibility */
   --color-primary: var(--color-brand);
@@ -59,28 +59,28 @@
 
 /* ===== Dark Theme Override ===== */
 [data-theme="dark"] {
-  --color-brand: #3b82f6;
-  --color-brand-light: #60a5fa;
-  --color-brand-dark: #1d4ed8;
-  --color-accent: #0ea5e9;
-  --color-accent-light: #7dd3fc;
+  --color-brand: #facc15;
+  --color-brand-light: #fef08a;
+  --color-brand-dark: #ca8a04;
+  --color-accent: #eab308;
+  --color-accent-light: #fde047;
 
-  --color-surface: #0b0f19;
-  --color-surface-alt: #111827;
-  --color-surface-dim: #1f2937;
-  --color-surface-input: #1f2937;
-  --color-surface-sidebar: #0b0f19;
-  --color-surface-card: #1f2937;
+  --color-surface: #000000;
+  --color-surface-alt: #0a0a0a;
+  --color-surface-dim: #171717;
+  --color-surface-input: #171717;
+  --color-surface-sidebar: #000000;
+  --color-surface-card: #171717;
 
-  --color-t-primary: #f9fafb;
-  --color-t-secondary: #d1d5db;
-  --color-t-muted: #9ca3af;
+  --color-t-primary: #ffffff;
+  --color-t-secondary: #e5e5e5;
+  --color-t-muted: #a3a3a3;
 
-  --color-edge: #374151;
-  --color-edge-subtle: #1f2937;
+  --color-edge: #262626;
+  --color-edge-subtle: #171717;
 
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
-  --shadow-button: 0 4px 14px rgba(59, 130, 246, 0.35);
+  --shadow-glow: 0 0 20px rgba(250, 204, 21, 0.15);
+  --shadow-button: 0 4px 14px rgba(250, 204, 21, 0.35);
 }
 
 /* ===== Global Resets ===== */
@@ -170,9 +170,9 @@ body {
 }
 
 /* ===== Gradient helpers ===== */
-.gradient-brand { background: linear-gradient(135deg, #2563eb, #0ea5e9); }
-.gradient-sidebar { background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
-[data-theme="dark"] .gradient-sidebar { background: linear-gradient(180deg, #111827 0%, #0b0f19 100%); }
+.gradient-brand { background: linear-gradient(135deg, #ca8a04, #facc15); }
+.gradient-sidebar { background: linear-gradient(180deg, #171717 0%, #000000 100%); }
+[data-theme="dark"] .gradient-sidebar { background: linear-gradient(180deg, #0a0a0a 0%, #000000 100%); }
 
 /* ===== Status Dot ===== */
 .status-dot {

@@ -22,6 +22,10 @@ module.exports = (sequelize) => {
       type: DataTypes.UUID,
       allowNull: true,
     },
+    regionId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
     tankCapacity: {
       type: DataTypes.FLOAT,
       allowNull: false,
@@ -95,6 +99,7 @@ module.exports = (sequelize) => {
     indexes: [
       { fields: ['device_code'], unique: true },
       { fields: ['route_id'] },
+      { fields: ['region_id'] },
       { fields: ['status'] },
       { fields: ['connection_status'] },
       { fields: ['last_seen'] },

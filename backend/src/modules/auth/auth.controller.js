@@ -4,7 +4,13 @@ const response = require('../../utils/response');
 class AuthController {
   async login(request, reply) {
     const { email, password } = request.body;
-    const result = await authService.login(email, password, request.server);
+    const result = await authService.login(
+      email,
+      password,
+      request.server,
+      request.ip,
+      request.headers['user-agent']
+    );
     return response.success(reply, result, 'Login successful');
   }
 
@@ -15,7 +21,7 @@ class AuthController {
   }
 
   async logout(request, reply) {
-    await authService.logout(request.userId);
+    await authService.logout(request.userId, request.ip, request.headers['user-agent']);
     return response.success(reply, null, 'Logged out successfully');
   }
 
@@ -52,6 +58,12 @@ class AuthController {
   async getProfile(request, reply) {
     const user = await authService.getProfile(request.userId);
     return response.success(reply, user, 'Profile fetched');
+  }
+
+  async updateFCMToken(request, reply) {
+    const { fcmToken } = request.body;
+    await authService.updateFCMToken(request.userId, fcmToken);
+    return response.success(reply, null, 'FCM token updated successfully');
   }
 }
 

@@ -33,6 +33,18 @@ function buildApp() {
     secret: env.jwt.secret,
   });
 
+  // Multipart file uploads
+  fastify.register(require('@fastify/multipart'), {
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  });
+
+  // Static files serving (for uploads)
+  const path = require('path');
+  fastify.register(require('@fastify/static'), {
+    root: path.join(__dirname, '../public'),
+    prefix: '/public/',
+  });
+
   // WebSocket
   fastify.register(require('@fastify/websocket'));
 
@@ -74,13 +86,14 @@ function buildApp() {
   fastify.register(require('./modules/dashboard/dashboard.routes'), { prefix: '/api/dashboard' });
   fastify.register(require('./modules/alert/alert.routes'), { prefix: '/api/alerts' });
   fastify.register(require('./modules/report/report.routes'), { prefix: '/api/reports' });
+  fastify.register(require('./modules/audit/audit.routes'), { prefix: '/api/audit-logs' });
 
   // ===== WEBSOCKET ROUTE =====
   fastify.register(async function (fastify) {
     const mqttService = require('./services/mqtt.service');
 
     fastify.get('/ws/dashboard', { websocket: true }, (socket, req) => {
-      console.log('🔌 WebSocket client connected');
+      console.log('WebSocket client connected');
       mqttService.addWSClient(socket);
 
       socket.on('message', (message) => {

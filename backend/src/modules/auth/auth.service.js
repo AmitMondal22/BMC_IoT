@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const { User } = require('../../db/models');
+const { User, AuditLog } = require('../../db/models');
 const { getRedis } = require('../../config/redis');
 const { UnauthorizedError, NotFoundError, BadRequestError } = require('../../utils/errors');
 const { CACHE_TTL } = require('../../utils/constants');
@@ -9,20 +9,81 @@ class AuthService {
   /**
    * Login with email and password
    */
-  async login(email, password, fastify) {
-    const user = await User.findOne({ where: { email } });
+  async login(emailOrPhone, password, fastify, ipAddress = null, userAgent = null) {
+    const redis = getRedis();
+    const loginAttemptsKey = `failed_login_attempts:${emailOrPhone}`;
+    const { Op } = require('sequelize');
+
+    const user = await User.findOne({
+      where: {
+        [Op.or]: [
+          { email: emailOrPhone },
+          { phone: emailOrPhone }
+        ]
+      }
+    });
     if (!user) {
+      // Log failed attempt for unknown user
+      await AuditLog.create({
+        action: 'FAILED_LOGIN',
+        entity: 'User',
+        oldValues: { email: emailOrPhone },
+        ipAddress,
+        userAgent,
+      });
       throw new UnauthorizedError('Invalid email or password');
     }
 
+    // If user is locked
+    if (user.status === 'suspended') {
+      throw new UnauthorizedError('Account is locked due to multiple failed login attempts. Please contact admin.');
+    }
+
     if (user.status !== 'active') {
-      throw new UnauthorizedError('Account is suspended or inactive');
+      throw new UnauthorizedError('Account is inactive');
     }
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
+      // Increment failed attempts count in Redis
+      const attempts = await redis.incr(loginAttemptsKey);
+      if (attempts === 1) {
+        await redis.expire(loginAttemptsKey, 3600); // 1 hour window
+      }
+
+      // Audit log failed login
+      await AuditLog.create({
+        userId: user.id,
+        action: 'FAILED_LOGIN',
+        entity: 'User',
+        entityId: user.id,
+        oldValues: { email, attempts },
+        ipAddress,
+        userAgent,
+      });
+
+      // Check if limit exceeded
+      if (attempts >= 5) {
+        await user.update({ status: 'suspended' });
+        await redis.del(loginAttemptsKey);
+        // Create another audit log for account lockout
+        await AuditLog.create({
+          userId: user.id,
+          action: 'ACCOUNT_LOCKOUT',
+          entity: 'User',
+          entityId: user.id,
+          newValues: { status: 'suspended' },
+          ipAddress,
+          userAgent,
+        });
+        throw new UnauthorizedError('Your account has been locked due to 5 consecutive failed login attempts. Please contact admin.');
+      }
+
       throw new UnauthorizedError('Invalid email or password');
     }
+
+    // Success login - reset failed attempts
+    await redis.del(loginAttemptsKey);
 
     // Generate tokens
     const accessToken = fastify.jwt.sign(
@@ -36,7 +97,6 @@ class AuthService {
     );
 
     // Store session in cache
-    const redis = getRedis();
     await redis.setex(`session:${user.id}`, CACHE_TTL.USER_SESSION, JSON.stringify({
       userId: user.id,
       role: user.role,
@@ -48,6 +108,16 @@ class AuthService {
 
     // Update last login
     await user.update({ lastLogin: new Date() });
+
+    // Audit log success login
+    await AuditLog.create({
+      userId: user.id,
+      action: 'LOGIN',
+      entity: 'User',
+      entityId: user.id,
+      ipAddress,
+      userAgent,
+    });
 
     return {
       accessToken,
@@ -108,10 +178,21 @@ class AuthService {
   /**
    * Logout - invalidate session
    */
-  async logout(userId) {
+  async logout(userId, ipAddress = null, userAgent = null) {
     const redis = getRedis();
     await redis.del(`session:${userId}`);
     await redis.del(`refresh:${userId}`);
+
+    if (userId) {
+      await AuditLog.create({
+        userId,
+        action: 'LOGOUT',
+        entity: 'User',
+        entityId: userId,
+        ipAddress,
+        userAgent,
+      });
+    }
   }
 
   /**
@@ -288,6 +369,14 @@ class AuthService {
     }
 
     return user;
+  }
+
+  async updateFCMToken(userId, fcmToken) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+    await user.update({ fcmToken });
   }
 }
 

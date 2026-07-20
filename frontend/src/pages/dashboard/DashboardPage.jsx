@@ -22,7 +22,7 @@ export default function DashboardPage() {
       setSummary(res.data);
     } catch {
       setSummary({
-        totalDevices: 0, onlineDevices: 0, offlineDevices: 0,
+        totalDevices: 0, activeDevices: 0, inactiveDevices: 0, onlineDevices: 0, offlineDevices: 0,
         activeAlerts: 0, totalVolume: 0, averageTemperature: 0,
         runningCompressors: 0, runningDG: 0, powerFailure: 0,
         cipDevices: 0, dispatchDevices: 0, highTempDevices: 0,
@@ -58,12 +58,12 @@ export default function DashboardPage() {
   }
 
   const stats = [
-    { label: 'Active Alerts', value: summary.activeAlerts, icon: AlertTriangle, accent: summary.activeAlerts > 0 ? 'bg-amber/10 text-amber' : 'bg-surface-dim text-t-muted', path: '/alerts' },
-    { label: 'Milk Volume (L)', value: summary.totalVolume.toLocaleString(), icon: Droplets, accent: 'bg-sky/10 text-sky' },
-    { label: 'Compressors', value: summary.runningCompressors, icon: Activity, accent: summary.runningCompressors > 0 ? 'bg-emerald/10 text-emerald' : 'bg-surface-dim text-t-muted' },
-    { label: 'CIP Active', value: summary.cipDevices, icon: Factory, accent: summary.cipDevices > 0 ? 'bg-sky/10 text-sky' : 'bg-surface-dim text-t-muted', path: '/devices?filter=cip' },
-    { label: 'Dispatch', value: summary.dispatchDevices, icon: Power, accent: summary.dispatchDevices > 0 ? 'bg-brand/10 text-brand' : 'bg-surface-dim text-t-muted', path: '/devices?filter=dispatch' },
-    { label: 'High Temp', value: summary.highTempDevices, icon: Bell, accent: summary.highTempDevices > 0 ? 'bg-rose/10 text-rose' : 'bg-surface-dim text-t-muted', path: '/devices?filter=high-temp' },
+    { label: 'Active Alerts', value: summary.activeAlerts, icon: AlertTriangle, accent: summary.activeAlerts > 0 ? 'bg-rose/15 text-rose' : 'bg-surface-dim text-t-muted', color: summary.activeAlerts > 0 ? 'var(--color-rose)' : 'var(--color-edge)', path: '/alerts' },
+    { label: 'Milk Volume (L)', value: summary.totalVolume.toLocaleString(), icon: Droplets, accent: 'bg-sky/15 text-sky', color: 'var(--color-brand)', path: '/devices' },
+    { label: 'Compressors', value: summary.runningCompressors, icon: Activity, accent: summary.runningCompressors > 0 ? 'bg-emerald/15 text-emerald' : 'bg-surface-dim text-t-muted', color: summary.runningCompressors > 0 ? 'var(--color-success)' : 'var(--color-edge)' },
+    { label: 'CIP Active', value: summary.cipDevices, icon: Factory, accent: summary.cipDevices > 0 ? 'bg-sky/15 text-sky' : 'bg-surface-dim text-t-muted', color: summary.cipDevices > 0 ? '#3b82f6' : 'var(--color-edge)', path: '/devices?filter=cip' },
+    { label: 'Dispatch', value: summary.dispatchDevices, icon: Power, accent: summary.dispatchDevices > 0 ? 'bg-brand/15 text-brand' : 'bg-surface-dim text-t-muted', color: summary.dispatchDevices > 0 ? 'var(--color-brand)' : 'var(--color-edge)', path: '/devices?filter=dispatch' },
+    { label: 'High Temp', value: summary.highTempDevices, icon: Bell, accent: summary.highTempDevices > 0 ? 'bg-rose/15 text-rose' : 'bg-surface-dim text-t-muted', color: summary.highTempDevices > 0 ? 'var(--color-rose)' : 'var(--color-edge)', path: '/devices?filter=high-temp' },
   ];
 
   // Bar chart data: Active devices comparative Volume & Temperature
@@ -124,15 +124,16 @@ export default function DashboardPage() {
           <div
             key={stat.label}
             onClick={() => stat.path && navigate(stat.path)}
-            className={`bg-surface-card border border-edge rounded-2xl p-4 hover:border-brand/30 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300 ${stat.path ? 'cursor-pointer hover:bg-surface-dim/35' : 'cursor-default'}`}
+            style={{ borderLeft: `4px solid ${stat.color || 'var(--color-edge)'}` }}
+            className={`bg-surface-card border border-edge rounded-2xl p-5 hover:border-brand/40 hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 ease-out ${stat.path ? 'cursor-pointer hover:bg-surface-dim/40' : 'cursor-default'}`}
           >
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center justify-between mb-4">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.accent}`}>
                 <stat.icon size={20} />
               </div>
             </div>
-            <div className="text-2xl font-bold text-t-primary">{stat.value}</div>
-            <div className="text-xs text-t-muted mt-1">{stat.label}</div>
+            <div className="text-3xl font-extrabold tracking-tight text-t-primary">{stat.value}</div>
+            <div className="text-[11px] font-semibold text-t-muted uppercase tracking-wider mt-2">{stat.label}</div>
           </div>
         ))}
       </div>
@@ -177,14 +178,23 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-2 flex-1 w-full">
-              {connectionPieChartData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-xl border border-edge bg-surface-dim/40 text-xs">
+              {[
+                { name: 'Active Devices', value: summary.activeDevices, color: '#3b82f6', filterVal: 'active' },
+                { name: 'Inactive Devices', value: summary.inactiveDevices, color: '#6b7280', filterVal: 'inactive' },
+                { name: 'Online (Active)', value: summary.onlineDevices, color: '#10b981', filterVal: 'online' },
+                { name: 'Offline (Active)', value: summary.offlineDevices, color: '#ef4444', filterVal: 'offline' },
+              ].map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => navigate(`/devices?filter=${item.filterVal}`)}
+                  className="flex items-center justify-between w-full p-2 rounded-xl border border-edge bg-surface-dim/40 text-xs hover:border-brand/40 hover:bg-surface-dim/60 transition-colors"
+                >
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                     <span className="font-medium text-t-secondary text-[11px]">{item.name}</span>
                   </div>
-                  <span className="font-bold text-t-primary">{item.value}</span>
-                </div>
+                  <span className="font-bold text-t-primary">{item.value || 0}</span>
+                </button>
               ))}
             </div>
           </div>
@@ -228,14 +238,22 @@ export default function DashboardPage() {
             </div>
             
             <div className="space-y-2 flex-1 w-full">
-              {pieChartData.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-xl border border-edge bg-surface-dim/40 text-xs">
+              {[
+                { name: 'Grid Power Ok', value: gridPowerOk, color: '#10b981', filterVal: 'all' },
+                { name: 'Power Failure', value: summary.powerFailure, color: '#ef4444', filterVal: 'power-fail' },
+                { name: 'DG Running', value: summary.runningDG, color: '#f59e0b', filterVal: 'dg-run' },
+              ].map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => navigate(`/devices?filter=${item.filterVal}`)}
+                  className="flex items-center justify-between w-full p-2 rounded-xl border border-edge bg-surface-dim/40 text-xs hover:border-brand/40 hover:bg-surface-dim/60 transition-colors"
+                >
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                     <span className="font-medium text-t-secondary text-[11px]">{item.name}</span>
                   </div>
-                  <span className="font-bold text-t-primary">{item.value}</span>
-                </div>
+                  <span className="font-bold text-t-primary">{item.value || 0}</span>
+                </button>
               ))}
             </div>
           </div>

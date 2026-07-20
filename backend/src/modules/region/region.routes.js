@@ -2,8 +2,9 @@ const regionController = require('./region.controller');
 const authenticate = require('../../middleware/authenticate');
 const authorize = require('../../middleware/authorize');
 const validate = require('../../middleware/validate');
+const auditLog = require('../../middleware/auditLog');
 const { ROLES } = require('../../utils/constants');
-const { createRegionSchema, updateRegionSchema, createSubRegionSchema, updateSubRegionSchema } = require('./region.schema');
+const { createRegionSchema, updateRegionSchema } = require('./region.schema');
 
 async function regionRoutes(fastify) {
   fastify.addHook('preHandler', authenticate);
@@ -11,16 +12,24 @@ async function regionRoutes(fastify) {
   // Regions
   fastify.get('/regions', { handler: regionController.listRegions });
   fastify.get('/regions/:id', { handler: regionController.getRegion });
-  fastify.post('/regions', { preHandler: [authorize(ROLES.SUPER_ADMIN, ROLES.ADMIN), validate(createRegionSchema)], handler: regionController.createRegion });
-  fastify.put('/regions/:id', { preHandler: [authorize(ROLES.SUPER_ADMIN, ROLES.ADMIN), validate(updateRegionSchema)], handler: regionController.updateRegion });
-  fastify.delete('/regions/:id', { preHandler: [authorize(ROLES.SUPER_ADMIN)], handler: regionController.deleteRegion });
+  
+  fastify.post('/regions', {
+    preHandler: [authorize(ROLES.SUPER_ADMIN), validate(createRegionSchema)],
+    onResponse: auditLog('CREATE', 'Region'),
+    handler: regionController.createRegion
+  });
 
-  // Sub Regions
-  fastify.get('/sub-regions', { handler: regionController.listSubRegions });
-  fastify.get('/sub-regions/:id', { handler: regionController.getSubRegion });
-  fastify.post('/sub-regions', { preHandler: [authorize(ROLES.SUPER_ADMIN, ROLES.ADMIN), validate(createSubRegionSchema)], handler: regionController.createSubRegion });
-  fastify.put('/sub-regions/:id', { preHandler: [authorize(ROLES.SUPER_ADMIN, ROLES.ADMIN), validate(updateSubRegionSchema)], handler: regionController.updateSubRegion });
-  fastify.delete('/sub-regions/:id', { preHandler: [authorize(ROLES.SUPER_ADMIN)], handler: regionController.deleteSubRegion });
+  fastify.put('/regions/:id', {
+    preHandler: [authorize(ROLES.SUPER_ADMIN), validate(updateRegionSchema)],
+    onResponse: auditLog('UPDATE', 'Region'),
+    handler: regionController.updateRegion
+  });
+
+  fastify.delete('/regions/:id', {
+    preHandler: [authorize(ROLES.SUPER_ADMIN)],
+    onResponse: auditLog('DELETE', 'Region'),
+    handler: regionController.deleteRegion
+  });
 }
 
 module.exports = regionRoutes;

@@ -46,6 +46,8 @@ class ReportService {
             cip_status: allLogsReports.some(lr => lr.logs[i]?.cip_status),
             dispatch_status: allLogsReports.some(lr => lr.logs[i]?.dispatch_status),
             media_type: allLogsReports[0]?.logs[i]?.media_type ?? 0,
+            fat: allLogsReports[0]?.logs[i]?.fat ?? 0.0,
+            snf: allLogsReports[0]?.logs[i]?.snf ?? 0.0,
           });
         }
       }
@@ -79,7 +81,7 @@ class ReportService {
           |> filter(fn: (r) => r["_measurement"] == "device_telemetry")
           |> filter(fn: (r) => r["deviceId"] == "${deviceId}")
           |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-          |> keep(columns: ["_time", "temperature", "milk_volume", "tank_level", "kwh", "grid_status", "dg_status", "grid_hours", "dg_hours", "cip_status", "dispatch_status", "media_type", "compressor1_status", "compressor2_status", "compressor3_status"])
+          |> keep(columns: ["_time", "temperature", "milk_volume", "tank_level", "kwh", "grid_status", "dg_status", "grid_hours", "dg_hours", "cip_status", "dispatch_status", "media_type", "fat", "snf", "compressor1_status", "compressor2_status", "compressor3_status"])
           |> sort(columns: ["_time"], desc: false)
       `;
       logs = await queryApi.collectRows(fluxQuery);
@@ -208,6 +210,7 @@ class ReportService {
         activeDispatch = {
           startTime: time,
           startVolume: log.milk_volume || 0,
+          startLevel: log.tank_level || 0,
           temps: [log.temperature || 4.0],
         };
       } else if (!log.dispatch_status && activeDispatch) {
@@ -533,6 +536,8 @@ class ReportService {
         compressor2_status,
         compressor3_status,
         media_type: cipStatus ? 1 : currentVolume > 0 ? 2 : 0,
+        fat: cipStatus ? 0.0 : currentVolume > 0 ? 4.2 : 0.0,
+        snf: cipStatus ? 0.0 : currentVolume > 0 ? 8.5 : 0.0,
       });
     }
 

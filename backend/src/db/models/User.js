@@ -36,6 +36,14 @@ module.exports = (sequelize) => {
       type: DataTypes.UUID,
       allowNull: true,
     },
+    regionId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    routeId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
     status: {
       type: DataTypes.ENUM('active', 'inactive', 'suspended'),
       defaultValue: 'active',
@@ -64,12 +72,18 @@ module.exports = (sequelize) => {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    fcmToken: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
   }, {
     tableName: 'users',
     indexes: [
       { fields: ['email'], unique: true },
       { fields: ['role'] },
       { fields: ['organization_id'] },
+      { fields: ['region_id'] },
+      { fields: ['route_id'] },
       { fields: ['status'] },
     ],
   });

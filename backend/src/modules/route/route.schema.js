@@ -4,7 +4,7 @@ const createRouteSchema = {
   body: Joi.object({
     name: Joi.string().min(2).max(150).required(),
     code: Joi.string().min(1).max(50).required(),
-    subRegionId: Joi.string().uuid().required(),
+    regionId: Joi.string().uuid().required(),
     description: Joi.string().allow('', null),
     status: Joi.string().valid('active', 'inactive').default('active'),
   }),
@@ -14,7 +14,7 @@ const updateRouteSchema = {
   body: Joi.object({
     name: Joi.string().min(2).max(150),
     code: Joi.string().min(1).max(50),
-    subRegionId: Joi.string().uuid(),
+    regionId: Joi.string().uuid(),
     description: Joi.string().allow('', null),
     status: Joi.string().valid('active', 'inactive'),
   }).min(1),

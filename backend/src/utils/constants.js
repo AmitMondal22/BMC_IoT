@@ -55,6 +55,7 @@ const MQTT_TOPICS = {
   HEARTBEAT: 'bmc/device/+/heartbeat',
   CONFIG: 'bmc/device/+/config',
   ACK: 'bmc/device/+/ack',
+  NEW_TELEMETRY: 'MPDSET/1/+',
 };
 
 const CACHE_KEYS = {

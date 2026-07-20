@@ -20,6 +20,8 @@ export const userAPI = {
   delete: (id) => api.delete(`/users/${id}`),
   resetPassword: (id, data) => api.put(`/users/${id}/reset-password`, data),
   assignDevices: (id, data) => api.post(`/users/${id}/assign-devices`, data),
+  forceLogout: (id) => api.post(`/users/${id}/force-logout`),
+  getLoginHistory: (id) => api.get(`/users/${id}/login-history`),
 };
 
 export const organizationAPI = {
@@ -38,13 +40,7 @@ export const regionAPI = {
   delete: (id) => api.delete(`/regions/${id}`),
 };
 
-export const subRegionAPI = {
-  list: (params) => api.get('/sub-regions', { params }),
-  getById: (id) => api.get(`/sub-regions/${id}`),
-  create: (data) => api.post('/sub-regions', data),
-  update: (id, data) => api.put(`/sub-regions/${id}`, data),
-  delete: (id) => api.delete(`/sub-regions/${id}`),
-};
+
 
 export const routeAPI = {
   list: (params) => api.get('/routes', { params }),
@@ -64,6 +60,7 @@ export const deviceAPI = {
   getCalibrations: (id) => api.get(`/devices/${id}/calibrations`),
   getAlertConfigs: (id) => api.get(`/devices/${id}/alert-configs`),
   updateAlertConfigs: (id, data) => api.put(`/devices/${id}/alert-configs`, data),
+  sendCommand: (deviceCode, command) => api.post(`/devices/code/${deviceCode}/command`, { command }),
 };
 
 export const dashboardAPI = {
@@ -83,4 +80,8 @@ export const reportAPI = {
   getCycles: (params) => api.get('/reports/cycles', { params }),
   getFullDaily: (params) => api.get('/reports/full-daily', { params }),
   emailDailyLog: (data) => api.post('/reports/email-daily-log', data),
+};
+
+export const auditAPI = {
+  list: (params) => api.get('/audit-logs', { params }),
 };

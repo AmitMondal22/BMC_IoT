@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Route, SubRegion, Region, Device, User } = require('../../db/models');
+const { Route, Region, Device, User } = require('../../db/models');
 const { NotFoundError, ConflictError } = require('../../utils/errors');
 const { getPagination, getPaginationMeta } = require('../../utils/pagination');
 
@@ -7,11 +7,10 @@ class RouteService {
   async list(query, userId, userRole) {
     const { page, limit, offset } = getPagination(query);
     const where = {};
-    const subRegionInclude = {
-      model: SubRegion,
-      as: 'subRegion',
-      attributes: ['id', 'name', 'code', 'regionId'],
-      include: [{ model: Region, as: 'region', attributes: ['id', 'name'] }]
+    const regionInclude = {
+      model: Region,
+      as: 'region',
+      attributes: ['id', 'name', 'code', 'organizationId']
     };
 
     if (query.search) {
@@ -20,25 +19,20 @@ class RouteService {
         { code: { [Op.iLike]: `%${query.search}%` } },
       ];
     }
-    if (query.subRegionId) where.subRegionId = query.subRegionId;
+    if (query.regionId) where.regionId = query.regionId;
     if (query.status) where.status = query.status;
 
     if (userRole !== 'super_admin') {
       const user = await User.findByPk(userId);
       if (user) {
-        subRegionInclude.include = [{
-          model: Region,
-          as: 'region',
-          attributes: ['id', 'name'],
-          where: { organizationId: user.organizationId }
-        }];
+        regionInclude.where = { organizationId: user.organizationId };
       }
     }
 
     const { count, rows } = await Route.findAndCountAll({
       where,
       include: [
-        subRegionInclude,
+        regionInclude,
         { model: Device, as: 'devices', attributes: ['id', 'deviceCode', 'deviceName', 'connectionStatus'] },
       ],
       order: [['createdAt', 'DESC']],
@@ -52,7 +46,7 @@ class RouteService {
   async getById(id) {
     const route = await Route.findByPk(id, {
       include: [
-        { model: SubRegion, as: 'subRegion', include: [{ model: Region, as: 'region' }] },
+        { model: Region, as: 'region' },
         { model: Device, as: 'devices' },
       ],
     });

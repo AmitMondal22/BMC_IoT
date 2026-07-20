@@ -10,11 +10,12 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import UserListPage from './pages/users/UserListPage';
 import DeviceListPage from './pages/devices/DeviceListPage';
 import RegionListPage from './pages/regions/RegionListPage';
-import SubRegionListPage from './pages/regions/SubRegionListPage';
 import RouteListPage from './pages/routes/RouteListPage';
 import AlertListPage from './pages/alerts/AlertListPage';
 import DeviceDetailPage from './pages/devices/DeviceDetailPage';
 import ReportsPage from './pages/reports/ReportsPage';
+import AuditLogsPage from './pages/users/AuditLogsPage';
+import OrganizationListPage from './pages/organizations/OrganizationListPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,11 +47,12 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="organizations" element={isAdmin ? <OrganizationListPage /> : <Navigate to="/dashboard" replace />} />
         <Route path="users" element={isAdmin ? <UserListPage /> : <Navigate to="/dashboard" replace />} />
+        <Route path="audit-logs" element={isAdmin ? <AuditLogsPage /> : <Navigate to="/dashboard" replace />} />
         <Route path="devices" element={<DeviceListPage />} />
         <Route path="devices/:id" element={<DeviceDetailPage />} />
         <Route path="regions" element={isAdmin ? <RegionListPage /> : <Navigate to="/dashboard" replace />} />
-        <Route path="sub-regions" element={<SubRegionListPage />} />
         <Route path="routes" element={<RouteListPage />} />
         <Route path="alerts" element={<AlertListPage />} />
         <Route path="reports" element={<ReportsPage />} />

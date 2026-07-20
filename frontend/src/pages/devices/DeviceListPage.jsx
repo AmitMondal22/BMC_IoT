@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function DeviceListPage() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const [searchParams] = useSearchParams();
   const urlFilter = searchParams.get('filter') || 'all';
 
@@ -53,6 +53,10 @@ export default function DeviceListPage() {
         filtered = filtered.filter(d => d.lastTelemetry?.dispatchStatus === true);
       } else if (filter === 'high-temp') {
         filtered = filtered.filter(d => d.lastTelemetry?.temperature > 8);
+      } else if (filter === 'active') {
+        filtered = filtered.filter(d => d.status === 'active');
+      } else if (filter === 'inactive') {
+        filtered = filtered.filter(d => d.status === 'inactive');
       } else if (filter === 'power-fail') {
         filtered = filtered.filter(d => d.lastTelemetry && !d.lastTelemetry.gridStatus);
       } else if (filter === 'dg-run') {
@@ -88,7 +92,7 @@ export default function DeviceListPage() {
     deviceCode: '', deviceName: '', routeId: '',
     tankCapacity: 5000, minTankVolume: 500,
     setTemperature: 4.0, dieselConsumption: 12, status: 'active',
-    userIds: [], alertEmails: '',
+    userIds: [], alertEmails: '', alertMobileNumbers: '',
   });
 
   const handleSave = async (e) => {
@@ -102,6 +106,7 @@ export default function DeviceListPage() {
         dieselConsumption: parseFloat(form.dieselConsumption),
         routeId: form.routeId || null,
         userIds: form.userIds || [],
+        alertMobileNumbers: form.alertMobileNumbers ? form.alertMobileNumbers.split(',').map(n => n.trim()).filter(Boolean).slice(0, 2) : [],
         metadata: {
           alertEmails: form.alertEmails.split(',').map(e => e.trim()).filter(Boolean).slice(0, 5)
         }
@@ -130,6 +135,7 @@ export default function DeviceListPage() {
       dieselConsumption: device.dieselConsumption || 0,
       status: device.status,
       userIds: device.users ? device.users.map(u => u.id) : [],
+      alertMobileNumbers: device.alertMobileNumbers ? device.alertMobileNumbers.join(', ') : '',
       alertEmails: device.metadata?.alertEmails ? device.metadata.alertEmails.join(', ') : '',
     });
     setShowModal(true);
@@ -150,7 +156,7 @@ export default function DeviceListPage() {
           <h1 className="text-2xl font-bold text-t-primary">Devices</h1>
           <p className="text-sm text-t-secondary">Manage BMC devices and IoT controllers</p>
         </div>
-        {isAdmin && (
+        {isSuperAdmin && (
           <button
             onClick={() => { setEditDevice(null); resetForm(); setShowModal(true); }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-medium shadow-button hover:bg-brand-dark hover:scale-105 transition-all"
@@ -173,7 +179,7 @@ export default function DeviceListPage() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {['all', 'online', 'offline', 'cip', 'dispatch', 'high-temp', 'power-fail', 'dg-run'].map((f) => (
+          {['all', 'online', 'offline', 'active', 'inactive', 'cip', 'dispatch', 'high-temp', 'power-fail', 'dg-run'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -198,6 +204,7 @@ export default function DeviceListPage() {
                 <th className="px-5 py-4">Device Info</th>
                 <th className="px-5 py-4">Temperature</th>
                 <th className="px-5 py-4">Media</th>
+                <th className="px-5 py-4">State</th>
                 <th className="px-5 py-4">Volume</th>
                 <th className="px-5 py-4 text-right">Actions</th>
               </tr>
@@ -208,14 +215,15 @@ export default function DeviceListPage() {
                 const isOnline = device.connectionStatus === 'online';
                 
                 // Determine Mode
-                let modeText = 'Cooling';
-                let modeClass = 'bg-surface-dim text-t-secondary';
-                if (telemetry.cipStatus) {
+                let modeText = 'IDLE';
+                if (telemetry.processName) {
+                  modeText = telemetry.processName;
+                } else if (telemetry.cipStatus) {
                   modeText = 'CIP';
-                  modeClass = 'bg-blue-500/15 text-blue-500 font-bold';
                 } else if (telemetry.dispatchStatus) {
                   modeText = 'DISPATCH';
-                  modeClass = 'bg-brand/15 text-brand font-bold';
+                } else if (telemetry.status?.CHILLING || telemetry.milkMode) {
+                  modeText = 'CHILLING';
                 }
 
                 // Power display
@@ -287,10 +295,22 @@ export default function DeviceListPage() {
                       </span>
                     </td>
 
-                    {/* Media / Status */}
+                    {/* Media */}
                     <td className="px-5 py-4 whitespace-nowrap">
                       <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${mediaClass}`}>
                         {mediaLabel}
+                      </span>
+                    </td>
+
+                    {/* State */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase ${
+                        modeText === 'CIP' ? 'bg-blue-500/15 text-blue-500 border border-blue-500/20' :
+                        modeText === 'DISPATCH' ? 'bg-orange-500/15 text-orange-500 border border-orange-500/20' :
+                        modeText === 'CHILLING' ? 'bg-amber-500/15 text-amber-500 border border-amber-500/20 animate-pulse-slow' :
+                        'bg-gray-500/15 text-gray-500 border border-gray-500/20'
+                      }`}>
+                        {modeText}
                       </span>
                     </td>
 
@@ -316,7 +336,7 @@ export default function DeviceListPage() {
                         >
                           <Eye size={15} />
                         </button>
-                        {isAdmin && (
+                        {isSuperAdmin && (
                           <>
                             <button
                               onClick={() => handleEditClick(device)}
@@ -387,7 +407,7 @@ export default function DeviceListPage() {
                 <select value={form.routeId} onChange={(e) => setForm({ ...form, routeId: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-input border border-edge text-t-primary outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all appearance-none cursor-pointer">
                   <option value="">Unassigned</option>
-                  {routes.map((r) => <option key={r.id} value={r.id}>{r.name} ({r.subRegion?.name || ''})</option>)}
+                  {routes.map((r) => <option key={r.id} value={r.id}>{r.name} ({r.region?.name || ''})</option>)}
                 </select>
               </div>
 
@@ -461,6 +481,18 @@ export default function DeviceListPage() {
                   placeholder="e.g. operator1@bmc.com, operator2@bmc.com"
                   value={form.alertEmails}
                   onChange={(e) => setForm({ ...form, alertEmails: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-input border border-edge text-t-primary outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all"
+                />
+              </div>
+
+              {/* Alert notification mobiles */}
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-t-secondary mb-1.5">Alert Mobile Numbers (Comma-separated, up to 2)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. +919999999999, +918888888888"
+                  value={form.alertMobileNumbers || ''}
+                  onChange={(e) => setForm({ ...form, alertMobileNumbers: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-input border border-edge text-t-primary outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all"
                 />
               </div>

@@ -8,6 +8,8 @@ const createUserSchema = {
     phone: Joi.string().allow('', null).label('Phone'),
     role: Joi.string().valid('super_admin', 'admin', 'user').default('user').label('Role'),
     organizationId: Joi.string().uuid().allow(null).label('Organization'),
+    regionId: Joi.string().uuid().allow('', null).optional().label('Region'),
+    routeId: Joi.string().uuid().allow('', null).optional().label('Route'),
     status: Joi.string().valid('active', 'inactive', 'suspended').default('active').label('Status'),
   }),
 };
@@ -19,6 +21,8 @@ const updateUserSchema = {
     phone: Joi.string().allow('', null).label('Phone'),
     role: Joi.string().valid('super_admin', 'admin', 'user').label('Role'),
     organizationId: Joi.string().uuid().allow(null).label('Organization'),
+    regionId: Joi.string().uuid().allow('', null).optional().label('Region'),
+    routeId: Joi.string().uuid().allow('', null).optional().label('Route'),
     status: Joi.string().valid('active', 'inactive', 'suspended').label('Status'),
   }).min(1),
   params: Joi.object({

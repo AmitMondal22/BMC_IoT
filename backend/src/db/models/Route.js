@@ -18,7 +18,7 @@ module.exports = (sequelize) => {
       allowNull: false,
       unique: true,
     },
-    subRegionId: {
+    regionId: {
       type: DataTypes.UUID,
       allowNull: false,
     },
@@ -34,7 +34,7 @@ module.exports = (sequelize) => {
     tableName: 'routes',
     indexes: [
       { fields: ['code'], unique: true },
-      { fields: ['sub_region_id'] },
+      { fields: ['region_id'] },
       { fields: ['status'] },
     ],
   });

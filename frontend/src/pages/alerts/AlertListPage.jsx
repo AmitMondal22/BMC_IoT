@@ -10,31 +10,31 @@ import { formatDistanceToNow } from 'date-fns';
 const severityConfig = {
   info: {
     icon: Info,
-    color: '#06b6d4', // cyan-500
-    bg: 'rgba(6,182,212,0.08)',
-    border: 'border-cyan-500',
-    badge: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+    color: '#0284c7', // sky-600
+    bg: 'rgba(14,165,233,0.08)',
+    border: 'border-sky-500',
+    badge: 'bg-sky-50 text-sky-700 border border-sky-200/50 dark:bg-sky-500/10 dark:text-sky-400 dark:border-transparent'
   },
   warning: {
     icon: AlertTriangle,
-    color: '#f59e0b', // amber-500
-    bg: 'rgba(245,158,11,0.08)',
-    border: 'border-amber-500',
-    badge: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+    color: '#d97706', // amber-600
+    bg: 'rgba(217,119,6,0.08)',
+    border: 'border-amber-600',
+    badge: 'bg-amber-50 text-amber-800 border border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-transparent'
   },
   critical: {
     icon: AlertOctagon,
-    color: '#ef4444', // red-500
-    bg: 'rgba(239,68,68,0.08)',
-    border: 'border-red-500',
-    badge: 'bg-red-500/10 text-red-600 dark:text-red-400'
+    color: '#e11d48', // rose-600
+    bg: 'rgba(225,29,72,0.08)',
+    border: 'border-rose-600',
+    badge: 'bg-rose-50 text-rose-700 border border-rose-200/50 dark:bg-rose-500/10 dark:text-rose-400 dark:border-transparent'
   },
   emergency: {
     icon: AlertOctagon,
     color: '#dc2626', // red-600
     bg: 'rgba(220,38,38,0.12)',
     border: 'border-red-600',
-    badge: 'bg-red-600/15 text-red-700 dark:text-red-400 font-extrabold animate-pulse'
+    badge: 'bg-red-50 text-red-700 border border-red-200/50 dark:bg-red-600/15 dark:text-red-400 dark:border-transparent font-extrabold animate-pulse'
   },
 };
 
@@ -124,7 +124,7 @@ export default function AlertListPage() {
       {filter === 'unacknowledged' && alerts.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-surface-card border border-edge rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
+            <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 border border-red-100 flex items-center justify-center dark:bg-red-500/10 dark:text-red-400 dark:border-transparent">
               <ShieldAlert size={20} />
             </div>
             <div>
@@ -134,7 +134,7 @@ export default function AlertListPage() {
           </div>
 
           <div className="bg-surface-card border border-edge rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 border border-amber-100 flex items-center justify-center dark:bg-amber-500/10 dark:text-amber-400 dark:border-transparent">
               <AlertTriangle size={20} />
             </div>
             <div>
@@ -144,7 +144,7 @@ export default function AlertListPage() {
           </div>
 
           <div className="bg-surface-card border border-edge rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-500">
+            <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 flex items-center justify-center dark:bg-sky-500/10 dark:text-sky-400 dark:border-transparent">
               <Info size={20} />
             </div>
             <div>
@@ -168,7 +168,7 @@ export default function AlertListPage() {
               onClick={() => setFilter(tab.key)}
               className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                 filter === tab.key
-                  ? 'bg-brand text-white shadow-button'
+                  ? 'bg-brand text-gray-950 font-bold shadow-button'
                   : 'text-t-secondary hover:text-t-primary hover:bg-surface-dim'
               }`}
             >
@@ -191,87 +191,97 @@ export default function AlertListPage() {
           <div className="w-8 h-8 border-3 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="space-y-3.5">
-          {alerts.map((alert) => {
-            const config = severityConfig[alert.severity] || severityConfig.info;
-            const Icon = config.icon;
-            
-            return (
-              <div
-                key={alert.id}
-                className={`bg-surface-card border border-edge hover:border-brand/20 rounded-2xl p-4.5 flex items-start gap-4 transition-all duration-200 shadow-sm border-l-4 ${config.border} hover:-translate-y-0.5`}
-              >
-                {/* Alert Icon Bubble */}
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-inner"
-                  style={{ backgroundColor: config.bg }}
-                >
-                  <Icon size={20} style={{ color: config.color }} />
-                </div>
+        <div className="bg-surface-card border border-edge rounded-2xl overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead>
+                <tr className="bg-surface-dim font-semibold text-t-secondary border-b border-edge">
+                  <th className="px-6 py-4">Severity</th>
+                  <th className="px-6 py-4">Device</th>
+                  <th className="px-6 py-4">Message</th>
+                  <th className="px-6 py-4">Triggered</th>
+                  <th className="px-6 py-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alerts.map((alert) => {
+                  const config = severityConfig[alert.severity] || severityConfig.info;
+                  const Icon = config.icon;
+                  
+                  return (
+                    <tr key={alert.id} className="border-t border-edge hover:bg-surface-dim/40 transition-colors">
+                      {/* Severity Column */}
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-lg flex items-center justify-center w-fit gap-1.5 text-[10px] font-extrabold uppercase tracking-wider ${config.badge}`}>
+                          <Icon size={12} style={{ color: config.color }} />
+                          {alert.severity}
+                        </span>
+                      </td>
+                      
+                      {/* Device Column */}
+                      <td className="px-6 py-4">
+                        <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-brand/10 text-brand border border-brand/20">
+                          {alert.device?.deviceName || alert.device?.deviceCode || 'System'}
+                        </span>
+                      </td>
 
-                {/* Content Block */}
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-brand/10 text-brand border border-brand/20">
-                      {alert.device?.deviceName || alert.device?.deviceCode || 'System'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider ${config.badge}`}>
-                      {alert.severity}
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-[14px] text-t-primary leading-tight">
-                    {alert.message}
-                  </h3>
+                      {/* Message Column */}
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          <span className="font-medium text-t-primary text-[13px] block leading-tight">
+                            {alert.message}
+                          </span>
+                          <span className="inline-flex items-center gap-1 uppercase font-semibold text-[9px] text-t-secondary tracking-wide bg-surface-dim/70 px-1.5 py-0.5 rounded border border-edge/30">
+                            <Radio size={10} className="shrink-0 text-brand" />
+                            {alert.type?.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      </td>
 
-                  {/* Metadata Row */}
-                  <div className="flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs text-t-muted">
-                    <span className="flex items-center gap-1.5 hover:text-brand transition-colors">
-                      <Laptop size={13} className="shrink-0" />
-                      {alert.device?.deviceName || alert.device?.deviceCode || 'System Controller'}
-                    </span>
-                    <span className="text-edge font-normal select-none">•</span>
-                    <span className="flex items-center gap-1.5 uppercase font-semibold text-[10px] text-t-secondary tracking-wide">
-                      <Radio size={13} className="shrink-0 text-brand" />
-                      {alert.type?.replace(/_/g, ' ')}
-                    </span>
-                    <span className="text-edge font-normal select-none">•</span>
-                    <span className="flex items-center gap-1.5 font-medium">
-                      <Clock size={13} className="shrink-0" />
-                      {alert.createdAt ? formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true }) : 'just now'}
-                    </span>
-                  </div>
-                </div>
+                      {/* Triggered Column */}
+                      <td className="px-6 py-4 text-t-secondary text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <Clock size={13} className="shrink-0 text-t-muted" />
+                          {alert.createdAt ? formatDistanceToNow(new Date(alert.createdAt), { addSuffix: true }) : 'just now'}
+                        </span>
+                      </td>
 
-                {/* Operations Actions */}
-                <div className="shrink-0 pl-2">
-                  {!alert.acknowledged ? (
-                    <button
-                      onClick={() => handleAcknowledge(alert.id)}
-                      title="Mark as Acknowledged"
-                      className="p-2.5 rounded-xl border border-emerald/20 text-emerald hover:bg-emerald/10 hover:border-emerald/40 transition-all cursor-pointer"
-                    >
-                      <Check size={16} className="stroke-[2.5]" />
-                    </button>
-                  ) : (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald/10 text-emerald text-xs font-bold uppercase tracking-wider select-none">
-                      <Check size={14} className="stroke-[3]" />
-                      Ack
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {alerts.length === 0 && (
-            <div className="text-center py-20 bg-surface-card border border-edge rounded-2xl flex flex-col items-center justify-center shadow-inner">
-              <div className="w-16 h-16 rounded-full bg-emerald/10 flex items-center justify-center text-emerald mb-4 animate-bounce">
-                <CheckCircle2 size={32} />
-              </div>
-              <h3 className="text-lg font-bold text-t-primary">System Secure</h3>
-              <p className="text-sm text-t-secondary mt-1">No active unacknowledged alerts found on this filter.</p>
-            </div>
-          )}
+                      {/* Actions Column */}
+                      <td className="px-6 py-4">
+                        <div className="flex justify-center">
+                          {!alert.acknowledged ? (
+                            <button
+                              onClick={() => handleAcknowledge(alert.id)}
+                              title="Mark as Acknowledged"
+                              className="p-1.5 rounded-lg border border-emerald/20 text-emerald hover:bg-emerald/10 hover:border-emerald/40 transition-all cursor-pointer"
+                            >
+                              <Check size={14} className="stroke-[2.5]" />
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald/10 text-emerald text-[10px] font-bold uppercase tracking-wider select-none">
+                              <Check size={12} className="stroke-[3]" />
+                              Ack
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {alerts.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="text-center py-20 bg-surface-card">
+                      <div className="w-16 h-16 rounded-full bg-emerald/10 flex items-center justify-center text-emerald mx-auto mb-4 animate-bounce">
+                        <CheckCircle2 size={32} />
+                      </div>
+                      <h3 className="text-lg font-bold text-t-primary">System Secure</h3>
+                      <p className="text-sm text-t-secondary mt-1">No active unacknowledged alerts found on this filter.</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

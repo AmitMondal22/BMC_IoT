@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
-const { User, Device, UserDevice, Organization } = require('../../db/models');
+const { User, Device, UserDevice, Organization, AuditLog, Region, Route } = require('../../db/models');
 const { NotFoundError, ConflictError } = require('../../utils/errors');
 const { getPagination, getPaginationMeta } = require('../../utils/pagination');
 
@@ -35,6 +35,8 @@ class UserService {
       attributes: { exclude: ['password', 'passwordResetToken', 'passwordResetExpiry', 'otpCode', 'otpExpiry'] },
       include: [
         { model: Organization, as: 'organization', attributes: ['id', 'name', 'code'] },
+        { model: Region, as: 'region', attributes: ['id', 'name', 'code'] },
+        { model: Route, as: 'route', attributes: ['id', 'name', 'code'] },
       ],
       order: [[query.sortBy || 'createdAt', query.sortOrder || 'DESC']],
       limit,
@@ -55,6 +57,8 @@ class UserService {
       attributes: { exclude: ['password', 'passwordResetToken', 'passwordResetExpiry', 'otpCode', 'otpExpiry'] },
       include: [
         { model: Organization, as: 'organization', attributes: ['id', 'name', 'code'] },
+        { model: Region, as: 'region', attributes: ['id', 'name', 'code'] },
+        { model: Route, as: 'route', attributes: ['id', 'name', 'code'] },
         { model: Device, as: 'devices', attributes: ['id', 'deviceCode', 'deviceName', 'status', 'connectionStatus'] },
       ],
     });
@@ -191,6 +195,41 @@ class UserService {
     await UserDevice.bulkCreate(assignments, { ignoreDuplicates: true });
 
     return { message: `${deviceIds.length} devices assigned to user` };
+  }
+
+  /**
+   * Evict user sessions from cache
+   */
+  async forceLogout(userId) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+    const redis = getRedis();
+    await redis.del(`session:${userId}`);
+    await redis.del(`refresh:${userId}`);
+    return { message: 'User session has been invalidated' };
+  }
+
+  /**
+   * Query login history from audits
+   */
+  async getLoginHistory(userId) {
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+    const logs = await AuditLog.findAll({
+      where: {
+        userId,
+        action: {
+          [Op.in]: ['LOGIN', 'FAILED_LOGIN', 'LOGOUT', 'ACCOUNT_LOCKOUT', 'FORCE_LOGOUT']
+        }
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 50
+    });
+    return logs;
   }
 }
 

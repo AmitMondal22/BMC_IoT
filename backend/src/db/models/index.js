@@ -27,7 +27,6 @@ const db = {};
 db.User = require('./User')(sequelize);
 db.Organization = require('./Organization')(sequelize);
 db.Region = require('./Region')(sequelize);
-db.SubRegion = require('./SubRegion')(sequelize);
 db.Route = require('./Route')(sequelize);
 db.Device = require('./Device')(sequelize);
 db.DeviceCalibration = require('./DeviceCalibration')(sequelize);
@@ -43,13 +42,13 @@ db.Setting = require('./Setting')(sequelize);
 db.Organization.hasMany(db.Region, { foreignKey: 'organizationId', as: 'regions' });
 db.Region.belongsTo(db.Organization, { foreignKey: 'organizationId', as: 'organization' });
 
-// Region → SubRegion
-db.Region.hasMany(db.SubRegion, { foreignKey: 'regionId', as: 'subRegions' });
-db.SubRegion.belongsTo(db.Region, { foreignKey: 'regionId', as: 'region' });
+// Region → Route
+db.Region.hasMany(db.Route, { foreignKey: 'regionId', as: 'routes' });
+db.Route.belongsTo(db.Region, { foreignKey: 'regionId', as: 'region' });
 
-// SubRegion → Route
-db.SubRegion.hasMany(db.Route, { foreignKey: 'subRegionId', as: 'routes' });
-db.Route.belongsTo(db.SubRegion, { foreignKey: 'subRegionId', as: 'subRegion' });
+// Region → Device
+db.Region.hasMany(db.Device, { foreignKey: 'regionId', as: 'devices' });
+db.Device.belongsTo(db.Region, { foreignKey: 'regionId', as: 'region' });
 
 // Route → Device
 db.Route.hasMany(db.Device, { foreignKey: 'routeId', as: 'devices' });
@@ -58,6 +57,14 @@ db.Device.belongsTo(db.Route, { foreignKey: 'routeId', as: 'route' });
 // Organization → User
 db.Organization.hasMany(db.User, { foreignKey: 'organizationId', as: 'users' });
 db.User.belongsTo(db.Organization, { foreignKey: 'organizationId', as: 'organization' });
+
+// Region → User
+db.Region.hasMany(db.User, { foreignKey: 'regionId', as: 'users' });
+db.User.belongsTo(db.Region, { foreignKey: 'regionId', as: 'region' });
+
+// Route → User
+db.Route.hasMany(db.User, { foreignKey: 'routeId', as: 'users' });
+db.User.belongsTo(db.Route, { foreignKey: 'routeId', as: 'route' });
 
 // User ↔ Device (Many-to-Many through UserDevice)
 db.User.belongsToMany(db.Device, { through: db.UserDevice, foreignKey: 'userId', as: 'devices' });

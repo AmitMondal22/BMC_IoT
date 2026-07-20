@@ -113,10 +113,11 @@ export default function ReportsPage() {
       csvContent += `Volume After Evening Session,"${reportData.sessionVolumes?.eveningVolume ?? 0} L"\n\n`;
 
       csvContent += `MILK DISPATCH CYCLES\n`;
-      csvContent += `#,Start Time,End Time,Volume Dispatched (L),Avg Temperature (°C)\n`;
+      csvContent += `#,Start,End,Hrs,Level (%),Actual qty (L),Dispatch qty (L),Remaining qty (L),Avg temperature (°C)\n`;
       if (reportData.dispatchCycles && reportData.dispatchCycles.length > 0) {
         reportData.dispatchCycles.forEach((c, idx) => {
-          csvContent += `${idx + 1},"${new Date(c.startTime).toLocaleString()}","${new Date(c.endTime).toLocaleString()}",${c.volumeDispatched},${c.avgTemperature}\n`;
+          const durationHrs = Math.round(((new Date(c.endTime) - new Date(c.startTime)) / 3600000) * 100) / 100;
+          csvContent += `${idx + 1},"${new Date(c.startTime).toLocaleString()}","${new Date(c.endTime).toLocaleString()}",${durationHrs.toFixed(2)},${c.startLevel || 0},${c.startVolume || 0},${c.volumeDispatched || 0},${c.endVolume || 0},${c.avgTemperature || 0}\n`;
         });
       } else {
         csvContent += `No dispatch cycles recorded for this period.\n`;
@@ -140,15 +141,17 @@ export default function ReportsPage() {
       csvContent += `Device Code,"${reportData.device?.deviceCode || ''}"\n`;
       csvContent += `Period,"${formatPeriodText()}"\n\n`;
 
-      csvContent += `Date & Time,Temperature,Media / Status,Volume (L),Grid Status,DG Status,Energy (kWh),Mode\n`;
+      csvContent += `Date & Time,Temperature,Media / Status,Volume (L),FAT (%),SNF (%),Grid Status,DG Status,Energy (kWh),Mode\n`;
       if (reportData.logs && reportData.logs.length > 0) {
         reportData.logs.forEach((log) => {
           const timeStr = new Date(log._time || log.timestamp).toLocaleString();
           const temp = log.temperature;
           const tempStr = `${temp?.toFixed(1)}°C`;
           const media = log.media_type === 1 ? 'Water' : log.media_type === 2 ? 'Milk' : 'Empty';
+          const fatStr = log.media_type === 2 ? `${(log.fat || 4.2).toFixed(1)}%` : '-';
+          const snfStr = log.media_type === 2 ? `${(log.snf || 8.5).toFixed(1)}%` : '-';
           const mode = log.cip_status ? 'CIP' : log.dispatch_status ? 'DISPATCH' : 'Cooling';
-          csvContent += `"${timeStr}","${tempStr}","${media}",${log.milk_volume},${log.grid_status ? 'OK' : 'FAIL'},${log.dg_status ? 'RUNNING' : 'OFF'},${log.kwh?.toFixed(1)},"${mode}"\n`;
+          csvContent += `"${timeStr}","${tempStr}","${media}",${log.milk_volume},"${fatStr}","${snfStr}",${log.grid_status ? 'OK' : 'FAIL'},${log.dg_status ? 'RUNNING' : 'OFF'},${log.kwh?.toFixed(1)},"${mode}"\n`;
         });
       } else {
         csvContent += `No log entries available for this period.\n`;
@@ -450,24 +453,35 @@ export default function ReportsPage() {
                       <thead>
                         <tr className="bg-surface-dim border-b border-edge text-xs font-semibold uppercase tracking-wider text-t-secondary">
                           <th className="px-5 py-3.5">#</th>
-                          <th className="px-5 py-3.5">Start Time</th>
-                          <th className="px-5 py-3.5">End Time</th>
-                          <th className="px-5 py-3.5">Volume Dispatched</th>
-                          <th className="px-5 py-3.5">Avg Temp</th>
+                          <th className="px-5 py-3.5">Start</th>
+                          <th className="px-5 py-3.5">End</th>
+                          <th className="px-5 py-3.5">Hrs</th>
+                          <th className="px-5 py-3.5">Level</th>
+                          <th className="px-5 py-3.5">Actual qty</th>
+                          <th className="px-5 py-3.5">Dispatch qty</th>
+                          <th className="px-5 py-3.5">Remaining qty</th>
+                          <th className="px-5 py-3.5">Avg temperature</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-edge text-t-primary">
-                        {reportData.dispatchCycles?.map((c, idx) => (
-                          <tr key={idx} className="hover:bg-surface-dim/40 transition-colors">
-                            <td className="px-5 py-3.5 font-semibold text-t-muted">{idx + 1}</td>
-                            <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleString()}</td>
-                            <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleString()}</td>
-                            <td className="px-5 py-3.5 font-bold text-sky">{c.volumeDispatched?.toLocaleString()} L</td>
-                            <td className="px-5 py-3.5 font-semibold">{c.avgTemperature?.toFixed(1)}°C</td>
-                          </tr>
-                        ))}
+                        {reportData.dispatchCycles?.map((c, idx) => {
+                          const durationHrs = Math.round(((new Date(c.endTime) - new Date(c.startTime)) / 3600000) * 100) / 100;
+                          return (
+                            <tr key={idx} className="hover:bg-surface-dim/40 transition-colors">
+                              <td className="px-5 py-3.5 font-semibold text-t-muted">{idx + 1}</td>
+                              <td className="px-5 py-3.5 font-mono">{new Date(c.startTime).toLocaleString()}</td>
+                              <td className="px-5 py-3.5 font-mono">{new Date(c.endTime).toLocaleString()}</td>
+                              <td className="px-5 py-3.5 font-mono">{durationHrs.toFixed(2)} hrs</td>
+                              <td className="px-5 py-3.5 font-semibold text-amber">{c.startLevel || 0}%</td>
+                              <td className="px-5 py-3.5 font-bold text-sky">{c.startVolume?.toLocaleString()} L</td>
+                              <td className="px-5 py-3.5 font-bold text-brand">{c.volumeDispatched?.toLocaleString()} L</td>
+                              <td className="px-5 py-3.5 font-bold text-t-secondary">{c.endVolume?.toLocaleString()} L</td>
+                              <td className="px-5 py-3.5 font-semibold text-emerald">{c.avgTemperature?.toFixed(1)}°C</td>
+                            </tr>
+                          );
+                        })}
                         {(!reportData.dispatchCycles || reportData.dispatchCycles.length === 0) && (
-                          <tr><td colSpan={5} className="text-center py-12 text-t-muted">No dispatch cycles recorded for this period</td></tr>
+                          <tr><td colSpan={9} className="text-center py-12 text-t-muted">No dispatch cycles recorded for this period</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -545,6 +559,8 @@ export default function ReportsPage() {
                         <th className="px-5 py-3.5">Temperature</th>
                         <th className="px-5 py-3.5">Media / Status</th>
                         <th className="px-5 py-3.5">Volume</th>
+                        <th className="px-5 py-3.5">FAT</th>
+                        <th className="px-5 py-3.5">SNF</th>
                         <th className="px-5 py-3.5">Grid</th>
                         <th className="px-5 py-3.5">DG</th>
                         <th className="px-5 py-3.5">KWH</th>
@@ -575,6 +591,8 @@ export default function ReportsPage() {
                             )}
                           </td>
                           <td className="px-5 py-3 font-semibold text-sky">{log.milk_volume?.toLocaleString()} L</td>
+                          <td className="px-5 py-3 text-t-secondary font-mono text-xs">{log.media_type === 2 ? `${(log.fat || 4.2).toFixed(1)}%` : '-'}</td>
+                          <td className="px-5 py-3 text-t-secondary font-mono text-xs">{log.media_type === 2 ? `${(log.snf || 8.5).toFixed(1)}%` : '-'}</td>
                           <td className="px-5 py-3">
                             <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${log.grid_status ? 'bg-emerald/15 text-emerald' : 'bg-rose/15 text-rose'}`}>
                               {log.grid_status ? 'OK' : 'FAIL'}

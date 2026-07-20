@@ -59,6 +59,11 @@ async function authRoutes(fastify, options) {
     preHandler: [authenticate],
     handler: authController.getProfile,
   });
+
+  fastify.put('/fcm-token', {
+    preHandler: [authenticate],
+    handler: authController.updateFCMToken,
+  });
 }
 
 module.exports = authRoutes;

@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
-const { Device, DeviceCalibration, Route, SubRegion, Region, User, AlertConfig } = require('../../db/models');
+const { Device, DeviceCalibration, Route, Region, User, AlertConfig } = require('../../db/models');
 const { NotFoundError, ConflictError, BadRequestError, UnauthorizedError } = require('../../utils/errors');
 const { getPagination, getPaginationMeta } = require('../../utils/pagination');
 const { getRedis } = require('../../config/redis');
@@ -25,28 +25,42 @@ class DeviceService {
       {
         model: Route,
         as: 'route',
-        attributes: ['id', 'name', 'code', 'subRegionId'],
-        include: [{
-          model: SubRegion,
-          as: 'subRegion',
-          attributes: ['id', 'name', 'regionId'],
-          include: [{ model: Region, as: 'region', attributes: ['id', 'name'] }],
-        }],
+        attributes: ['id', 'name', 'code', 'regionId'],
+        include: [{ model: Region, as: 'region', attributes: ['id', 'name', 'organizationId'] }],
       },
     ];
 
-    // If user role is 'user', only show assigned devices
+    if (userRole === 'admin' && userId) {
+      const user = await User.findByPk(userId);
+      if (user) {
+        // Enforce organization scoping by requiring Region to belong to this organization
+        includeOpts[0].required = true;
+        includeOpts[0].include = [{
+          model: Region,
+          as: 'region',
+          attributes: ['id', 'name', 'organizationId'],
+          where: { organizationId: user.organizationId },
+          required: true
+        }];
+      }
+    }
+
+    // If user role is 'user', only show devices scoped to their assigned Route or Region
     let queryOptions = { where, include: includeOpts, order: [['createdAt', 'DESC']], limit, offset };
 
     if (userRole === 'user' && userId) {
-      queryOptions.include.push({
-        model: User,
-        as: 'users',
-        where: { id: userId },
-        attributes: [],
-        through: { attributes: [] },
-        required: true,
-      });
+      const user = await User.findByPk(userId);
+      if (user) {
+        if (user.routeId) {
+          where.routeId = user.routeId;
+        } else if (user.regionId) {
+          where.regionId = user.regionId;
+        } else {
+          where.id = null; // No assignments -> returns empty list
+        }
+      } else {
+        where.id = null;
+      }
     }
 
     const { count, rows } = await Device.findAndCountAll(queryOptions);
@@ -74,7 +88,7 @@ class DeviceService {
       include: [
         {
           model: Route, as: 'route',
-          include: [{ model: SubRegion, as: 'subRegion', include: [{ model: Region, as: 'region' }] }],
+          include: [{ model: Region, as: 'region' }],
         },
         { model: DeviceCalibration, as: 'calibrations', order: [['calibratedAt', 'DESC']], limit: 10 },
         { model: User, as: 'users', attributes: ['id', 'name', 'email'] },
@@ -96,6 +110,15 @@ class DeviceService {
   async create(data) {
     const existing = await Device.findOne({ where: { deviceCode: data.deviceCode } });
     if (existing) throw new ConflictError('Device code already exists');
+
+    // If routeId is provided but regionId is not, copy regionId from Route
+    if (data.routeId && !data.regionId) {
+      const route = await Route.findByPk(data.routeId);
+      if (route) {
+        data.regionId = route.regionId;
+      }
+    }
+
     const device = await Device.create(data);
     if (data.userIds && Array.isArray(data.userIds)) {
       await device.setUsers(data.userIds);
@@ -106,6 +129,15 @@ class DeviceService {
   async update(id, data) {
     const device = await Device.findByPk(id);
     if (!device) throw new NotFoundError('Device not found');
+
+    // If routeId is changed/supplied, update regionId accordingly if not explicitly supplied
+    if (data.routeId && data.routeId !== device.routeId && !data.regionId) {
+      const route = await Route.findByPk(data.routeId);
+      if (route) {
+        data.regionId = route.regionId;
+      }
+    }
+
     await device.update(data);
     if (data.userIds && Array.isArray(data.userIds)) {
       await device.setUsers(data.userIds);
@@ -209,6 +241,65 @@ class DeviceService {
     }
 
     return { message: 'Alert configurations updated successfully' };
+  }
+
+  async saveSnapshot(id, fileBuffer, filename, snapshotMeta) {
+    const fs = require('fs');
+    const path = require('path');
+
+    const device = await Device.findByPk(id);
+    if (!device) throw new NotFoundError('Device not found');
+
+    const uploadDir = path.join(__dirname, '../../../public/uploads/snapshots');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filePath = path.join(uploadDir, filename);
+    fs.writeFileSync(filePath, fileBuffer);
+
+    const photoUrl = `/public/uploads/snapshots/${filename}`;
+    const newSnapshot = {
+      id: require('uuid').v4(),
+      photoUrl,
+      remarks: snapshotMeta.remarks,
+      latitude: snapshotMeta.latitude,
+      longitude: snapshotMeta.longitude,
+      capturedAt: snapshotMeta.capturedAt,
+      uploadedAt: new Date().toISOString(),
+    };
+
+    const currentMeta = device.metadata || {};
+    const currentSnapshots = currentMeta.snapshots || [];
+    currentMeta.snapshots = [newSnapshot, ...currentSnapshots];
+
+    // Force updates to metadata field to ensure Sequelize detects changes
+    await device.update({
+      metadata: { ...currentMeta }
+    });
+
+    const redis = getRedis();
+    await redis.del(CACHE_KEYS.DEVICE_TELEMETRY(id));
+
+    return newSnapshot;
+  }
+
+  async sendCommand(deviceCode, command) {
+    const { getMQTT } = require('../../config/mqtt');
+    const client = getMQTT();
+    const topic = `/MPDSUB/${deviceCode}`;
+    
+    return new Promise((resolve, reject) => {
+      client.publish(topic, command, { qos: 1 }, (err) => {
+        if (err) {
+          console.error(`❌ Failed to publish command to ${topic}:`, err.message);
+          reject(err);
+        } else {
+          console.log(`📤 Command published to ${topic}: ${command}`);
+          resolve();
+        }
+      });
+    });
   }
 }
 

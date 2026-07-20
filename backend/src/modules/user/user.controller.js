@@ -37,6 +37,16 @@ class UserController {
     const result = await userService.assignDevices(request.params.id, request.body.deviceIds);
     return response.success(reply, null, result.message);
   }
+
+  async forceLogout(request, reply) {
+    const result = await userService.forceLogout(request.params.id);
+    return response.success(reply, null, result.message);
+  }
+
+  async getLoginHistory(request, reply) {
+    const history = await userService.getLoginHistory(request.params.id);
+    return response.success(reply, history, 'Login history fetched');
+  }
 }
 
 module.exports = new UserController();
